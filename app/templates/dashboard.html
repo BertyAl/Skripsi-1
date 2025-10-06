@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<section class="hero-cta position-relative py-5">
+  <div class="hero-cta__bg"></div>
+  <div class="container" style="max-width:980px;">
+    <h1 class="text-center fw-bold text-black mb-4">Optimasi Portofolio Saham IHSG</h1>
+
+    <div class="mx-auto" style="max-width:640px;">
+      <form action="{{ url_for('main.about') }}" method="post" class="card p-4 shadow-lg bg-transparent border-0">
+        <div class="mb-3">
+          <label for="amount" class="form-label fw-semibold text-black">Masukkan Dana Anda (IDR):</label>
+          <div class="input-hint-wrap">
+            <input id="amount" name="amount" type="number" min="0" step="1000"
+                   class="form-control form-control-lg cta-input"
+                   placeholder="Masukkan nominal dana…">
+            <span class="input-hint">Contoh: 10000000</span>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-success btn-lg w-100 rounded-3 fw-semibold">
+          Tampilkan Rekomendasi
+        </button>
+      </form>
+    </div>
+  </div>
+</section>
+{% endblock %}

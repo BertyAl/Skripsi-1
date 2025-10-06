@@ -1,0 +1,8 @@
+{% extends 'base.html' %}
+{% block content %}
+  <div class="text-center" style="padding:120px 0">
+    <h1 class="display-4 fw-bold">404</h1>
+    <p class="text-secondary">Halaman tidak ditemukan.</p>
+    <a class="btn btn-primary" href="{{ url_for('main.index') }}">Kembali ke Home</a>
+  </div>
+{% endblock %}
