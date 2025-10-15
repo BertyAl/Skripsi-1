@@ -17,7 +17,15 @@
             <span class="input-hint">Contoh: 10000000</span>
           </div>
         </div>
-
+          <div class="mb-3">
+              <label for="amount" class="form-label fw-semibold text-black">Masukkan Saham Yang ingin dipilih</label>
+              <div class="input-hint-wrap">
+                  <input id="amount" name="amount" type="number" min="0" step="1000"
+                         class="form-control form-control-lg cta-input"
+                         placeholder="Masukkan Saham">
+                  <span class="input-hint">Contoh: BBRI</span>
+              </div>
+          </div>
         <button type="submit" class="btn btn-primary btn-lg w-50 rounded-3 fw-semibold d-block mx-auto">
           Tampilkan Rekomendasi
         </button>
