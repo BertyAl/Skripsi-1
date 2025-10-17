@@ -1,23 +1,79 @@
+{#{% extends 'base.html' %}#}
+{#{% block content %}#}
+{##}
+{#<div class="container px-0">#}
+{#  <div class="row justify-content-center">#}
+{#    <div class="col-lg-10 col-xl-8">#}
+{#      <div class="card shadow-sm border-0" style="background: var(--card, #fff); box-shadow: var(--shadow, 0 10px 20px rgba(0,0,0,.15)); border:1px solid var(--border, #e5e7eb);">#}
+{#        <div class="card-body p-4 p-md-5">#}
+{#          <h1 class="fw-bold mb-3 text-center">Informasi xPorto</h1>#}
+{##}
+{#            <p class="text-secondary" style="text-align: justify; font-size: 18px; line-height: 1.7;">#}
+{#            xPorto adalah sistem optimasi portofolio saham berbasis IHSG yang menggabungkan pemodelan kuantitatif dan rekayasa perangkat lunak untuk membantu investor merancang alokasi aset yang efisien, terukur, dan mudah dieksekusi. Di sisi data, xPorto menarik dan membersihkan harga historis saham-saham konstituen IHSG, menghitung return, volatilitas, dan matriks kovarians sebagai fondasi pengukuran risiko. Di sisi analitik, xPorto menyediakan beberapa mesin optimasi: mean-variance Markowitz (MIQP) untuk solusi terstruktur dengan kendala ketat (full-invested, non-negativity, batas bobot per saham/industri, target return minimum), serta meta-heuristik seperti PSO/GA untuk menjelajah ruang solusi yang kompleks (mis. batas jumlah saham aktif/K-asset, dan penalti turnover). Sistem ini mendukung berbagai fungsi objektif—minim varians, maksimisasi Sharpe, hingga minimasi CVaR—serta opsi estimasi return (historis, exponentially-weighted, atau factor-based) agar robust terhadap perubahan rezim pasar.#}
+{#          </p>#}
+{##}
+{#          <p class="text-secondary" style="text-align: justify; font-size: 18px; line-height: 1.7;">#}
+{#            Lapisan aplikasi xPorto dirancang pragmatis: antarmuka web menampilkan input universe IHSG yang tersaring likuiditas, horizon investasi, parameter risiko, dan kendala khusus pengguna (mis. cap sektor, eksklusi saham, atau batasan ESG). Hasil optimasi divisualisasikan sebagai pie chart komposisi, metrik kinerja (expected return, risiko, Sharpe), dan kurva efficient frontier, dilengkapi backtest singkat serta analisis sensitivitas (stress test per sektor/saham) untuk menilai ketahanan portofolio. Dengan arsitektur modular yang memisahkan pipeline data, engine optimasi, dan layer visualisasi, xPorto mudah diperluas—misalnya menambahkan rebalancing rules, biaya transaksi, atau integrasi sinyal faktor—sehingga menjadi alat kerja yang adaptif bagi investor Indonesia yang berfokus pada pasar domestik.#}
+{#          </p>#}
+{#        </div>#}
+{#      </div>#}
+{#    </div>#}
+{#  </div>#}
+{#</div>#}
+{#{% endblock %}#}
 {% extends 'base.html' %}
 {% block content %}
+    <div class="container py-5" style="max-width:980px;">
+        <h2 class="mb-4 text-center">Hasil Prediksi Saham xLSTM</h2>
+        <p><strong>Dana:</strong> Rp {{ "{:,.0f}".format(amount or 0) }}</p>
 
-<div class="container px-0">
-  <div class="row justify-content-center">
-    <div class="col-lg-10 col-xl-8">
-      <div class="card shadow-sm border-0" style="background: var(--card, #fff); box-shadow: var(--shadow, 0 10px 20px rgba(0,0,0,.15)); border:1px solid var(--border, #e5e7eb);">
-        <div class="card-body p-4 p-md-5">
-          <h1 class="fw-bold mb-3 text-center">Informasi xPorto</h1>
+        {% for res in results %}
+            <div class="card mb-4 p-3 shadow-sm">
+                <h5 class="mb-2">{{ res.ticker }}</h5>
+                <ul class="mb-3">
+                    <li>Harga terakhir: {{ "%.2f"|format(res.last_price) }}</li>
+                    <li>Prediksi harga berikutnya: {{ "%.2f"|format(res.next_pred) }}</li>
+                    <li>Mean Absolute Error (MAE): {{ "%.4f"|format(res.mae) }}</li>
+                </ul>
 
-            <p class="text-secondary" style="text-align: justify; font-size: 18px; line-height: 1.7;">
-            xPorto adalah sistem optimasi portofolio saham berbasis IHSG yang menggabungkan pemodelan kuantitatif dan rekayasa perangkat lunak untuk membantu investor merancang alokasi aset yang efisien, terukur, dan mudah dieksekusi. Di sisi data, xPorto menarik dan membersihkan harga historis saham-saham konstituen IHSG, menghitung return, volatilitas, dan matriks kovarians sebagai fondasi pengukuran risiko. Di sisi analitik, xPorto menyediakan beberapa mesin optimasi: mean-variance Markowitz (MIQP) untuk solusi terstruktur dengan kendala ketat (full-invested, non-negativity, batas bobot per saham/industri, target return minimum), serta meta-heuristik seperti PSO/GA untuk menjelajah ruang solusi yang kompleks (mis. batas jumlah saham aktif/K-asset, dan penalti turnover). Sistem ini mendukung berbagai fungsi objektif—minim varians, maksimisasi Sharpe, hingga minimasi CVaR—serta opsi estimasi return (historis, exponentially-weighted, atau factor-based) agar robust terhadap perubahan rezim pasar.
-          </p>
+                <details class="mb-3">
+                    <summary class="fw-semibold text-primary">Lihat proses training & evaluasi</summary>
+                    <pre style="white-space: pre-wrap; font-size: 0.9rem;">{{ logs_per_ticker[res.ticker]|join('\n') }}</pre>
+                </details>
 
-          <p class="text-secondary" style="text-align: justify; font-size: 18px; line-height: 1.7;">
-            Lapisan aplikasi xPorto dirancang pragmatis: antarmuka web menampilkan input universe IHSG yang tersaring likuiditas, horizon investasi, parameter risiko, dan kendala khusus pengguna (mis. cap sektor, eksklusi saham, atau batasan ESG). Hasil optimasi divisualisasikan sebagai pie chart komposisi, metrik kinerja (expected return, risiko, Sharpe), dan kurva efficient frontier, dilengkapi backtest singkat serta analisis sensitivitas (stress test per sektor/saham) untuk menilai ketahanan portofolio. Dengan arsitektur modular yang memisahkan pipeline data, engine optimasi, dan layer visualisasi, xPorto mudah diperluas—misalnya menambahkan rebalancing rules, biaya transaksi, atau integrasi sinyal faktor—sehingga menjadi alat kerja yang adaptif bagi investor Indonesia yang berfokus pada pasar domestik.
-          </p>
-        </div>
-      </div>
+                <canvas id="chart_{{ loop.index }}" width="400" height="200"></canvas>
+                <script>
+                    const ctx{{ loop.index }} = document.getElementById('chart_{{ loop.index }}').getContext('2d');
+                    new Chart(ctx{{ loop.index }}, {
+                        type: 'line',
+                        data: {
+                            labels: [...Array({{ res.actual|length }})].map((_, i) => i+1),
+                            datasets: [
+                                {
+                                    label: 'Actual',
+                                    data: {{ res.actual|tojson }},
+                                    borderColor: 'blue',
+                                    borderWidth: 2,
+                                    fill: false
+                                },
+                                {
+                                    label: 'Prediksi',
+                                    data: {{ res.preds|tojson }},
+                                    borderColor: 'orange',
+                                    borderWidth: 2,
+                                    fill: false
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: { legend: { position: 'bottom' } },
+                            scales: { x: { display: false }, y: { beginAtZero: false } }
+                        }
+                    });
+                </script>
+            </div>
+        {% endfor %}
     </div>
-  </div>
-</div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 {% endblock %}

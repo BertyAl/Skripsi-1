@@ -1,36 +1,165 @@
+{#{% extends 'base.html' %}#}
+{##}
+{#{% block content %}#}
+{#<section class="hero-cta position-relative py-5">#}
+{#  <div class="hero-cta__bg"></div>#}
+{#  <div class="container" style="max-width:980px;">#}
+{#    <h1 class="text-center fw-bold text-black mb-4">Optimasi Portofolio Saham IHSG</h1>#}
+{##}
+{#    <div class="mx-auto" style="max-width:640px;">#}
+{#      <form action="{{ url_for('main.about') }}" method="post" class="card p-4 shadow-lg bg-transparent border-0">#}
+{#        <div class="mb-3">#}
+{#          <label for="amount" class="form-label fw-semibold text-black">Masukkan Dana Anda (IDR):</label>#}
+{#          <div class="input-hint-wrap">#}
+{#            <input id="amount" name="amount" type="number" min="0" step="1000"#}
+{#                   class="form-control form-control-lg cta-input"#}
+{#                   placeholder="Masukkan nominal dana…">#}
+{#            <span class="input-hint">Contoh: 10000000</span>#}
+{#          </div>#}
+{#        </div>#}
+{#          <div class="mb-3">#}
+{#              <label for="amount" class="form-label fw-semibold text-black">Masukkan Saham Yang ingin dipilih</label>#}
+{#              <div class="input-hint-wrap">#}
+{#                  <input id="amount" name="amount" type="number" min="0" step="1000"#}
+{#                         class="form-control form-control-lg cta-input"#}
+{#                         placeholder="Masukkan Saham">#}
+{#                  <span class="input-hint">Contoh: BBRI</span>#}
+{#              </div>#}
+{#          </div>#}
+{#        <button type="submit" class="btn btn-primary btn-lg w-50 rounded-3 fw-semibold d-block mx-auto">#}
+{#          Tampilkan Rekomendasi#}
+{#        </button>#}
+{#      </form>#}
+{#    </div>#}
+{#  </div>#}
+{#</section>#}
+{#{% endblock %}#}
+
 {% extends 'base.html' %}
-
 {% block content %}
-<section class="hero-cta position-relative py-5">
-  <div class="hero-cta__bg"></div>
-  <div class="container" style="max-width:980px;">
-    <h1 class="text-center fw-bold text-black mb-4">Optimasi Portofolio Saham IHSG</h1>
+    <section class="hero-cta position-relative py-5">
+        <div class="hero-cta__bg"></div>
+        <div class="container" style="max-width:980px;">
+            <h1 class="text-center fw-bold text-black mb-4">Optimasi Portofolio Saham IHSG</h1>
 
-    <div class="mx-auto" style="max-width:640px;">
-      <form action="{{ url_for('main.about') }}" method="post" class="card p-4 shadow-lg bg-transparent border-0">
-        <div class="mb-3">
-          <label for="amount" class="form-label fw-semibold text-black">Masukkan Dana Anda (IDR):</label>
-          <div class="input-hint-wrap">
-            <input id="amount" name="amount" type="number" min="0" step="1000"
-                   class="form-control form-control-lg cta-input"
-                   placeholder="Masukkan nominal dana…">
-            <span class="input-hint">Contoh: 10000000</span>
-          </div>
+            <div class="mx-auto" style="max-width:640px;">
+                <form action="{{ url_for('main.about') }}" method="post" class="card p-4 shadow-lg bg-transparent border-0">
+                    <div class="mb-3">
+                        <label for="amount" class="form-label fw-semibold text-black">Masukkan Dana Anda (IDR):</label>
+                        <div class="input-hint-wrap">
+                            <input id="amount" name="amount" type="number" min="0" step="1000"
+                                   class="form-control form-control-lg cta-input"
+                                   placeholder="Masukkan nominal dana…" required>
+                            <span class="input-hint">Contoh: 10000000</span>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="tickers" class="form-label fw-semibold text-black">Pilih Saham IHSG</label>
+
+                        <!-- 🔎 Search bar -->
+                        <input id="ticker-search" type="text" class="form-control form-control-lg mb-2"
+                               placeholder="Cari saham (ketik min. 3 huruf, mis. 'BBR' atau 'tel')"
+                               autocomplete="off" aria-describedby="searchHelp">
+
+                        <div id="searchHelp" class="form-text">
+                            Ketik minimal 3 huruf untuk memfilter berdasarkan <em>kode</em> atau <em>nama</em>.
+                        </div>
+
+                        {% if tickers and tickers|length > 0 %}
+                            <select id="tickers" name="tickers" class="form-select form-select-lg" multiple required size="8">
+                                {% for code, name in tickers %}
+                                    <option value="{{ code }}">{{ code }} — {{ name }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">Tekan <kbd>Ctrl</kbd>/<kbd>Cmd</kbd> untuk memilih lebih dari satu.</div>
+                            <div class="form-text">(Akan dikueri sebagai <code>.JK</code> di yfinance)</div>
+                        {% else %}
+                            <div class="alert alert-warning">
+                                Daftar saham tidak tersedia. Pastikan file <code>Data/Ticker/ihsg_tickers.CSV</code> ada & berisi kolom <strong>code,name</strong>.
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <script>
+                        (function() {
+                            const searchInput = document.getElementById('ticker-search');
+                            const selectEl    = document.getElementById('tickers');
+                            if (!searchInput || !selectEl) return;
+
+                            // Simpan semua opsi awal sebagai "sumber kebenaran"
+                            const ALL_OPTIONS = Array.from(selectEl.options).map(opt => {
+                                const text = opt.textContent || '';
+                                // Pecah "CODE — NAME" menjadi dua bagian untuk pencarian yang lebih fleksibel
+                                const parts = text.split('—');
+                                const code = (parts[0] || '').trim();
+                                const name = (parts[1] || '').trim();
+                                return { value: opt.value, text, code, name };
+                            });
+
+                            // Debounce helper
+                            let t = null;
+                            const debounce = (fn, wait=150) => (...args) => {
+                                clearTimeout(t); t = setTimeout(() => fn.apply(null, args), wait);
+                            };
+
+                            function renderOptions(filtered) {
+                                // Pertahankan opsi yang sudah dipilih
+                                const selectedSet = new Set(Array.from(selectEl.selectedOptions).map(o => o.value));
+                                selectEl.innerHTML = '';
+                                filtered.forEach(o => {
+                                    const opt = document.createElement('option');
+                                    opt.value = o.value;
+                                    opt.textContent = o.text;
+                                    if (selectedSet.has(o.value)) opt.selected = true;
+                                    selectEl.appendChild(opt);
+                                });
+                            }
+
+                            const onSearch = debounce(() => {
+                                const q = (searchInput.value || '').trim().toLowerCase();
+                                if (q.length < 3) {
+                                    // Kurang dari 3 huruf → tampilkan semua
+                                    renderOptions(ALL_OPTIONS);
+                                    return;
+                                }
+                                // Filter berdasarkan kode ATAU nama
+                                const filtered = ALL_OPTIONS.filter(o =>
+                                    o.code.toLowerCase().includes(q) || o.name.toLowerCase().includes(q)
+                                );
+                                renderOptions(filtered.length ? filtered : []); // kosong jika tak ada yang cocok
+                            });
+
+                            searchInput.addEventListener('input', onSearch);
+                        })();
+                    </script>
+
+
+{#                    <div class="mb-3">#}
+{#                        <label for="tickers" class="form-label fw-semibold text-black">Pilih Saham IHSG</label>#}
+{##}
+{##}
+{##}
+{#                        {% if tickers and tickers|length > 0 %}#}
+{#                            <select id="tickers" name="tickers" class="form-select form-select-lg" multiple required size="8">#}
+{#                                {% for code, name in tickers %}#}
+{#                                    <option value="{{ code }}">{{ code }} — {{ name }}</option>#}
+{#                                {% endfor %}#}
+{#                            </select>#}
+{#                            <div class="form-text">Tekan <kbd>Ctrl</kbd>/<kbd>Cmd</kbd> untuk memilih lebih dari satu.</div>#}
+{#                            <div class="form-text">(Akan dikueri sebagai <code>.JK</code> di yfinance)</div>#}
+{#                        {% else %}#}
+{#                            <div class="alert alert-warning">#}
+{#                                Daftar saham tidak tersedia. Pastikan file <code>Data/Ticker/ihsg_tickers.CSV</code> ada & berisi kolom <strong>code,name</strong>.#}
+{#                            </div>#}
+{#                        {% endif %}#}
+{#                    </div>#}
+
+                    <button type="submit" class="btn btn-primary btn-lg w-50 rounded-3 fw-semibold d-block mx-auto"
+                            {% if not tickers or tickers|length == 0 %}disabled{% endif %}>
+                        Tampilkan Rekomendasi
+                    </button>
+                </form>
+            </div>
         </div>
-          <div class="mb-3">
-              <label for="amount" class="form-label fw-semibold text-black">Masukkan Saham Yang ingin dipilih</label>
-              <div class="input-hint-wrap">
-                  <input id="amount" name="amount" type="number" min="0" step="1000"
-                         class="form-control form-control-lg cta-input"
-                         placeholder="Masukkan Saham">
-                  <span class="input-hint">Contoh: BBRI</span>
-              </div>
-          </div>
-        <button type="submit" class="btn btn-primary btn-lg w-50 rounded-3 fw-semibold d-block mx-auto">
-          Tampilkan Rekomendasi
-        </button>
-      </form>
-    </div>
-  </div>
-</section>
+    </section>
 {% endblock %}
