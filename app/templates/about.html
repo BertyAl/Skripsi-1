@@ -1,79 +1,262 @@
-{#{% extends 'base.html' %}#}
-{#{% block content %}#}
-{##}
-{#<div class="container px-0">#}
-{#  <div class="row justify-content-center">#}
-{#    <div class="col-lg-10 col-xl-8">#}
-{#      <div class="card shadow-sm border-0" style="background: var(--card, #fff); box-shadow: var(--shadow, 0 10px 20px rgba(0,0,0,.15)); border:1px solid var(--border, #e5e7eb);">#}
-{#        <div class="card-body p-4 p-md-5">#}
-{#          <h1 class="fw-bold mb-3 text-center">Informasi xPorto</h1>#}
-{##}
-{#            <p class="text-secondary" style="text-align: justify; font-size: 18px; line-height: 1.7;">#}
-{#            xPorto adalah sistem optimasi portofolio saham berbasis IHSG yang menggabungkan pemodelan kuantitatif dan rekayasa perangkat lunak untuk membantu investor merancang alokasi aset yang efisien, terukur, dan mudah dieksekusi. Di sisi data, xPorto menarik dan membersihkan harga historis saham-saham konstituen IHSG, menghitung return, volatilitas, dan matriks kovarians sebagai fondasi pengukuran risiko. Di sisi analitik, xPorto menyediakan beberapa mesin optimasi: mean-variance Markowitz (MIQP) untuk solusi terstruktur dengan kendala ketat (full-invested, non-negativity, batas bobot per saham/industri, target return minimum), serta meta-heuristik seperti PSO/GA untuk menjelajah ruang solusi yang kompleks (mis. batas jumlah saham aktif/K-asset, dan penalti turnover). Sistem ini mendukung berbagai fungsi objektif—minim varians, maksimisasi Sharpe, hingga minimasi CVaR—serta opsi estimasi return (historis, exponentially-weighted, atau factor-based) agar robust terhadap perubahan rezim pasar.#}
-{#          </p>#}
-{##}
-{#          <p class="text-secondary" style="text-align: justify; font-size: 18px; line-height: 1.7;">#}
-{#            Lapisan aplikasi xPorto dirancang pragmatis: antarmuka web menampilkan input universe IHSG yang tersaring likuiditas, horizon investasi, parameter risiko, dan kendala khusus pengguna (mis. cap sektor, eksklusi saham, atau batasan ESG). Hasil optimasi divisualisasikan sebagai pie chart komposisi, metrik kinerja (expected return, risiko, Sharpe), dan kurva efficient frontier, dilengkapi backtest singkat serta analisis sensitivitas (stress test per sektor/saham) untuk menilai ketahanan portofolio. Dengan arsitektur modular yang memisahkan pipeline data, engine optimasi, dan layer visualisasi, xPorto mudah diperluas—misalnya menambahkan rebalancing rules, biaya transaksi, atau integrasi sinyal faktor—sehingga menjadi alat kerja yang adaptif bagi investor Indonesia yang berfokus pada pasar domestik.#}
-{#          </p>#}
-{#        </div>#}
-{#      </div>#}
-{#    </div>#}
-{#  </div>#}
-{#</div>#}
-{#{% endblock %}#}
 {% extends 'base.html' %}
 {% block content %}
-    <div class="container py-5" style="max-width:980px;">
-        <h2 class="mb-4 text-center">Hasil Prediksi Saham xLSTM</h2>
-        <p><strong>Dana:</strong> Rp {{ "{:,.0f}".format(amount or 0) }}</p>
+    <div class="container py-4">
+        <h4 class="mt-4">Hasil Optimasi Portofolio</h4>
 
-        {% for res in results %}
-            <div class="card mb-4 p-3 shadow-sm">
-                <h5 class="mb-2">{{ res.ticker }}</h5>
-                <ul class="mb-3">
-                    <li>Harga terakhir: {{ "%.2f"|format(res.last_price) }}</li>
-                    <li>Prediksi harga berikutnya: {{ "%.2f"|format(res.next_pred) }}</li>
-                    <li>Mean Absolute Error (MAE): {{ "%.4f"|format(res.mae) }}</li>
-                </ul>
+        {% if df_alloc and df_alloc|length > 0 %}
+            <div class="row g-3">
+                <div class="col-md-7">
+                    <table class="table table-sm">
+                        <thead class="table-light">
+                        <tr>
+                            <th>Ticker</th>
+                            <th class="text-end">Bobot</th>
+                            <th class="text-end">Nominal (Rp)</th>
+                            <th class="text-end">Expected Return</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for row in df_alloc %}
+                            <tr>
+                                <td>{{ row.ticker }}</td>
+                                <td class="text-end">{{ "%.2f%%"|format(row.weight * 100) }}</td>
+                                <td class="text-end">{{ "{:,.0f}".format(row.nominal) }}</td>
+                                <td class="text-end">{{ "%.3f%%"|format(row.exp_return * 100) }}</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
 
-                <details class="mb-3">
-                    <summary class="fw-semibold text-primary">Lihat proses training & evaluasi</summary>
-                    <pre style="white-space: pre-wrap; font-size: 0.9rem;">{{ logs_per_ticker[res.ticker]|join('\n') }}</pre>
-                </details>
+                    <div class="mt-2 small text-muted">
+                        Expected Return Portofolio: <strong>{{ "%.3f%%"|format(summary.exp_return * 100) }}</strong> |
+                        Risiko: <strong>{{ "%.3f%%"|format(summary.risk * 100) }}</strong> |
+                        Sharpe: <strong>{{ "%.3f"|format(summary.sharpe) }}</strong>
+                    </div>
+                </div>
 
-                <canvas id="chart_{{ loop.index }}" width="400" height="200"></canvas>
-                <script>
-                    const ctx{{ loop.index }} = document.getElementById('chart_{{ loop.index }}').getContext('2d');
-                    new Chart(ctx{{ loop.index }}, {
+                <div class="col-md-5">
+                    <canvas id="allocPie" height="260"></canvas>
+                </div>
+            </div>
+        {% else %}
+            <div class="alert alert-warning">Belum ada alokasi (hasil optimasi kosong).</div>
+        {% endif %}
+        <div class="d-flex align-items-center justify-content-between mb-3">
+            <h2 class="h4 mb-0">Hasil Prediksi Saham xLSTM</h2>
+            {% if amount is not none %}
+                <span class="text-muted small">Dana: Rp {{ "{:,.0f}".format(amount or 0) }}</span>
+            {% endif %}
+        </div>
+
+        {% if results|length == 0 %}
+            <div class="alert alert-warning">Tidak ada hasil untuk ditampilkan.</div>
+        {% else %}
+            <div class="result-grid">
+                {% for res in results %}
+                    <div class="card result-card shadow-sm">
+                        <div class="card-body p-3">
+                            <h5 class="card-title h6 mb-2">{{ res.ticker }}</h5>
+
+                            <ul class="list-unstyled list-compact mb-2">
+                                <li>Harga terakhir: <strong>{{ "%.2f"|format(res.last_price) }}</strong></li>
+                                <li>Prediksi berikutnya: <strong>{{ "%.2f"|format(res.next_pred) }}</strong></li>
+                                <li>MAE: <strong>{{ "%.4f"|format(res.mae) }}</strong></li>
+                                <li>RMSE: <strong>{{ "%.4f"|format(res.rmse) }}</strong></li>
+                                <li>MAPE: <strong>{{ "%.2f"|format(res.mape) }}%</strong></li>
+                            </ul>
+
+                            <div class="chart-wrap mb-2">
+                                <canvas id="chart_{{ loop.index }}" height="160"></canvas>
+                            </div>
+
+                            <div class="table-responsive mb-2">
+                                <table class="table table-sm align-middle mb-0">
+                                    <thead>
+                                    <tr>
+                                        <th>Horizon</th>
+                                        <th>Tanggal</th>
+                                        <th class="text-end">Prediksi Harga</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr>
+                                        <td>1 Hari (T+1)</td>
+                                        <td>{{ res.pred_1d_date }}</td>
+                                        <td class="text-end"><strong>{{ "%.2f"|format(res.pred_1d) }}</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            3 Bulan (≈ 60 hari bursa)
+                                            <button class="btn btn-link btn-sm p-0 ms-2" type="button"
+                                                    data-bs-toggle="collapse"
+                                                    data-bs-target="#tbl3m_{{ loop.index0 }}"
+                                                    aria-expanded="false"
+                                                    aria-controls="tbl3m_{{ loop.index0 }}">
+                                                Lihat rincian
+                                            </button>
+                                        </td>
+                                        <td>{{ res.pred_3mo_date }}</td>
+                                        <td class="text-end"><strong>{{ "%.2f"|format(res.pred_3mo) }}</strong></td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                                <div class="form-text mt-1">
+                                    Data terakhir: <strong>{{ res.last_date }}</strong> → hari bursa berikutnya: <strong>{{ res.next_bd }}</strong>
+                                </div>
+                            </div>
+
+                            {% set has_future = (res.future_dates is defined) and (res.future_values is defined)
+                                and (res.future_dates|length > 0) and (res.future_values|length > 0) %}
+                            {% if has_future %}
+                                <div class="collapse" id="tbl3m_{{ loop.index0 }}">
+                                    <div class="card card-body border-0 p-0 mt-2">
+                                        <div class="table-responsive" style="max-height:260px; overflow-y:auto;">
+                                            <table class="table table-sm table-hover mb-0">
+                                                <thead class="table-light" style="position:sticky; top:0; z-index:1;">
+                                                <tr>
+                                                    <th style="width:40%;">Tanggal</th>
+                                                    <th class="text-end">Prediksi Harga</th>
+                                                </tr>
+                                                </thead>
+                                                <tbody>
+                                                {% for i in range(res.future_dates|length) %}
+                                                    <tr>
+                                                        <td>{{ res.future_dates[i] }}</td>
+                                                        <td class="text-end">{{ "%.2f"|format(res.future_values[i]) }}</td>
+                                                    </tr>
+                                                {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <div class="d-flex justify-content-end mt-2">
+                                            <button type="button" class="btn btn-outline-secondary btn-sm"
+                                                    onclick="download3MCSV('{{ res.ticker }}', {{ res.future_dates|tojson }}, {{ res.future_values|tojson }})">
+                                                Unduh CSV 3 Bulan
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div class="alert alert-warning mt-2 mb-0 small">
+                                    Data prediksi 3 bulan tidak tersedia untuk {{ res.ticker }}.
+                                </div>
+                            {% endif %}
+
+                            {% if logs_per_ticker %}
+                                <details class="small text-muted">
+                                    <summary class="mb-1">Lihat proses training & evaluasi</summary>
+                                    <pre class="mb-0 small" style="white-space:pre-wrap">{{ logs_per_ticker[res.ticker]|join('\n') }}</pre>
+                                </details>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+{#        <h4 class="mt-4">Hasil Optimasi Portofolio</h4>#}
+{##}
+{#        {% if df_alloc and df_alloc|length > 0 %}#}
+{#            <div class="row g-3">#}
+{#                <div class="col-md-7">#}
+{#                    <table class="table table-sm">#}
+{#                        <thead class="table-light">#}
+{#                        <tr>#}
+{#                            <th>Ticker</th>#}
+{#                            <th class="text-end">Bobot</th>#}
+{#                            <th class="text-end">Nominal (Rp)</th>#}
+{#                            <th class="text-end">Expected Return</th>#}
+{#                        </tr>#}
+{#                        </thead>#}
+{#                        <tbody>#}
+{#                        {% for row in df_alloc %}#}
+{#                            <tr>#}
+{#                                <td>{{ row.ticker }}</td>#}
+{#                                <td class="text-end">{{ "%.2f%%"|format(row.weight * 100) }}</td>#}
+{#                                <td class="text-end">{{ "{:,.0f}".format(row.nominal) }}</td>#}
+{#                                <td class="text-end">{{ "%.3f%%"|format(row.exp_return * 100) }}</td>#}
+{#                            </tr>#}
+{#                        {% endfor %}#}
+{#                        </tbody>#}
+{#                    </table>#}
+{##}
+{#                    <div class="mt-2 small text-muted">#}
+{#                        Expected Return Portofolio: <strong>{{ "%.3f%%"|format(summary.exp_return * 100) }}</strong> |#}
+{#                        Risiko: <strong>{{ "%.3f%%"|format(summary.risk * 100) }}</strong> |#}
+{#                        Sharpe: <strong>{{ "%.3f"|format(summary.sharpe) }}</strong>#}
+{#                    </div>#}
+{#                </div>#}
+{##}
+{#                <div class="col-md-5">#}
+{#                    <canvas id="allocPie" height="260"></canvas>#}
+{#                </div>#}
+{#            </div>#}
+{#        {% else %}#}
+{#            <div class="alert alert-warning">Belum ada alokasi (hasil optimasi kosong).</div>#}
+{#        {% endif %}#}
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        (function(){
+            // Line charts untuk tiap ticker
+            {% for res in results %}
+                (function(){
+                    const el = document.getElementById('chart_{{ loop.index }}');
+                    if (!el) return;
+                    new Chart(el.getContext('2d'), {
                         type: 'line',
                         data: {
-                            labels: [...Array({{ res.actual|length }})].map((_, i) => i+1),
+                            labels: Array.from({length: {{ res.actual|length }}}, (_,i)=>i+1),
                             datasets: [
-                                {
-                                    label: 'Actual',
-                                    data: {{ res.actual|tojson }},
-                                    borderColor: 'blue',
-                                    borderWidth: 2,
-                                    fill: false
-                                },
-                                {
-                                    label: 'Prediksi',
-                                    data: {{ res.preds|tojson }},
-                                    borderColor: 'orange',
-                                    borderWidth: 2,
-                                    fill: false
-                                }
+                                {label:'Actual',   data: {{ res.actual|tojson }},  borderWidth: 2, fill: false},
+                                {label:'Prediksi', data: {{ res.preds|tojson }},   borderWidth: 2, fill: false}
                             ]
                         },
-                        options: {
-                            responsive: true,
-                            plugins: { legend: { position: 'bottom' } },
-                            scales: { x: { display: false }, y: { beginAtZero: false } }
+                        options: { responsive:true, maintainAspectRatio:false,
+                            plugins:{ legend:{ position:'bottom', labels:{ boxWidth:16 } } },
+                            scales:{ x:{ display:false } }
                         }
                     });
-                </script>
-            </div>
-        {% endfor %}
-    </div>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+                })();
+            {% endfor %}
+
+            // Pie chart alokasi dari df_alloc
+            {% if df_alloc and df_alloc|length > 0 %}
+                const labels = {{ df_alloc | map(attribute='ticker') | list | tojson }};
+                const weights = {{ df_alloc | map(attribute='weight') | list | tojson }};
+                const ctxPie = document.getElementById('allocPie');
+                if (ctxPie) {
+                    new Chart(ctxPie.getContext('2d'), {
+                        type: 'pie',
+                        data: { labels, datasets: [{ data: weights }] },
+                        options: {
+                            plugins: {
+                                tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ${(ctx.raw*100).toFixed(2)}%` } },
+                                legend: { position:'bottom' }
+                            }
+                        }
+                    });
+                }
+            {% endif %}
+        })();
+    </script>
+
+    <script>
+        function download3MCSV(ticker, dates, values) {
+            const rows = [["Tanggal","PrediksiHarga"]];
+            for (let i = 0; i < dates.length; i++) rows.push([dates[i], values[i]]);
+            const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url  = URL.createObjectURL(blob);
+            const a    = document.createElement('a');
+            a.href = url;
+            a.download = `prediksi_3bulan_${ticker.replace('.','_')}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
 {% endblock %}

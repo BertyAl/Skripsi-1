@@ -133,3 +133,33 @@ footer{
 @media (prefers-reduced-motion:reduce){
   .btn{ transition:none; }
 }
+/* Grid rapat & responsif untuk kartu hasil */
+.result-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+/* Kartu kompak */
+.result-card {
+  border-radius: 10px;
+}
+
+/* List ringkas */
+.list-compact li {
+  margin-bottom: 2px;
+  line-height: 1.25;
+}
+
+/* Bungkus chart agar tinggi konsisten & hemat ruang */
+.chart-wrap {
+  position: relative;
+  height: 160px; /* match canvas height attribute */
+}
+
+/* <details> tampilan ringkas */
+details > summary {
+  cursor: pointer;
+  list-style: none;
+}
+details > summary::-webkit-details-marker { display: none; }
