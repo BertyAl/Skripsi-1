@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% block content %}
     <div class="container py-4">
+        <h5 class="text-danger">Bukan ajakan untuk membeli saham, lakukan analisa kembali sebelum memutuskan!</h5>
         <h4 class="mt-4">Hasil Optimasi Portofolio</h4>
 
         {% if df_alloc and df_alloc|length > 0 %}
@@ -13,6 +14,7 @@
                             <th class="text-end">Bobot</th>
                             <th class="text-end">Nominal (Rp)</th>
                             <th class="text-end">Expected Return</th>
+                            <th class="text-end">Risiko</th>
                         </tr>
                         </thead>
                         <tbody>
@@ -22,6 +24,7 @@
                                 <td class="text-end">{{ "%.2f%%"|format(row.weight * 100) }}</td>
                                 <td class="text-end">{{ "{:,.0f}".format(row.nominal) }}</td>
                                 <td class="text-end">{{ "%.3f%%"|format(row.exp_return * 100) }}</td>
+                                <td class="text-end">{{ "%.3f%%"|format(row.asset_sigma * 100) }}</td>
                             </tr>
                         {% endfor %}
                         </tbody>
@@ -32,6 +35,18 @@
                         Risiko: <strong>{{ "%.3f%%"|format(summary.risk * 100) }}</strong> |
                         Sharpe: <strong>{{ "%.3f"|format(summary.sharpe) }}</strong>
                     </div>
+                    {% if summary and (summary.exp_return is not none) and (summary.exp_return < 0) %}
+                        <div class="mt-1 small text-danger">
+                            ⚠️ Expected return portofolio negatif ({{ "%.3f%%"|format(summary.exp_return * 100) }}).
+                            Pertimbangkan mengganti komposisi saham.
+                            {# opsional: tampilkan ticker yang exp_return-nya negatif #}
+                            {% set neg = df_alloc | selectattr('exp_return', 'lt', 0) | map(attribute='ticker') | list %}
+                            {% if neg|length > 0 %}
+                                Saham dengan expected return negatif: {{ neg|join(', ') }}.
+                            {% endif %}
+                        </div>
+                    {% endif %}
+
                 </div>
 
                 <div class="col-md-5">
@@ -47,7 +62,6 @@
                 <span class="text-muted small">Dana: Rp {{ "{:,.0f}".format(amount or 0) }}</span>
             {% endif %}
         </div>
-
         {% if results|length == 0 %}
             <div class="alert alert-warning">Tidak ada hasil untuk ditampilkan.</div>
         {% else %}
@@ -65,9 +79,9 @@
                                 <li>MAPE: <strong>{{ "%.2f"|format(res.mape) }}%</strong></li>
                             </ul>
 
-                            <div class="chart-wrap mb-2">
-                                <canvas id="chart_{{ loop.index }}" height="160"></canvas>
-                            </div>
+{#                            <div class="chart-wrap mb-2">#}
+{#                                <canvas id="chart_{{ loop.index }}" height="160"></canvas>#}
+{#                            </div>#}
 
                             <div class="table-responsive mb-2">
                                 <table class="table table-sm align-middle mb-0">
@@ -142,59 +156,17 @@
                                 </div>
                             {% endif %}
 
-                            {% if logs_per_ticker %}
-                                <details class="small text-muted">
-                                    <summary class="mb-1">Lihat proses training & evaluasi</summary>
-                                    <pre class="mb-0 small" style="white-space:pre-wrap">{{ logs_per_ticker[res.ticker]|join('\n') }}</pre>
-                                </details>
-                            {% endif %}
+{#                            {% if logs_per_ticker %}#}
+{#                                <details class="small text-muted">#}
+{#                                    <summary class="mb-1">Lihat proses training & evaluasi</summary>#}
+{#                                    <pre class="mb-0 small" style="white-space:pre-wrap">{{ logs_per_ticker[res.ticker]|join('\n') }}</pre>#}
+{#                                </details>#}
+{#                            {% endif %}#}
                         </div>
                     </div>
                 {% endfor %}
             </div>
         {% endif %}
-
-{#        <h4 class="mt-4">Hasil Optimasi Portofolio</h4>#}
-{##}
-{#        {% if df_alloc and df_alloc|length > 0 %}#}
-{#            <div class="row g-3">#}
-{#                <div class="col-md-7">#}
-{#                    <table class="table table-sm">#}
-{#                        <thead class="table-light">#}
-{#                        <tr>#}
-{#                            <th>Ticker</th>#}
-{#                            <th class="text-end">Bobot</th>#}
-{#                            <th class="text-end">Nominal (Rp)</th>#}
-{#                            <th class="text-end">Expected Return</th>#}
-{#                        </tr>#}
-{#                        </thead>#}
-{#                        <tbody>#}
-{#                        {% for row in df_alloc %}#}
-{#                            <tr>#}
-{#                                <td>{{ row.ticker }}</td>#}
-{#                                <td class="text-end">{{ "%.2f%%"|format(row.weight * 100) }}</td>#}
-{#                                <td class="text-end">{{ "{:,.0f}".format(row.nominal) }}</td>#}
-{#                                <td class="text-end">{{ "%.3f%%"|format(row.exp_return * 100) }}</td>#}
-{#                            </tr>#}
-{#                        {% endfor %}#}
-{#                        </tbody>#}
-{#                    </table>#}
-{##}
-{#                    <div class="mt-2 small text-muted">#}
-{#                        Expected Return Portofolio: <strong>{{ "%.3f%%"|format(summary.exp_return * 100) }}</strong> |#}
-{#                        Risiko: <strong>{{ "%.3f%%"|format(summary.risk * 100) }}</strong> |#}
-{#                        Sharpe: <strong>{{ "%.3f"|format(summary.sharpe) }}</strong>#}
-{#                    </div>#}
-{#                </div>#}
-{##}
-{#                <div class="col-md-5">#}
-{#                    <canvas id="allocPie" height="260"></canvas>#}
-{#                </div>#}
-{#            </div>#}
-{#        {% else %}#}
-{#            <div class="alert alert-warning">Belum ada alokasi (hasil optimasi kosong).</div>#}
-{#        {% endif %}#}
-
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -245,18 +217,59 @@
 
     <script>
         function download3MCSV(ticker, dates, values) {
-            const rows = [["Tanggal","PrediksiHarga"]];
-            for (let i = 0; i < dates.length; i++) rows.push([dates[i], values[i]]);
-            const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const url  = URL.createObjectURL(blob);
-            const a    = document.createElement('a');
-            a.href = url;
-            a.download = `prediksi_3bulan_${ticker.replace('.','_')}.csv`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+            try {
+                if (!Array.isArray(dates) || !Array.isArray(values) || dates.length === 0) {
+                    console.warn("No data to export.");
+                    return;
+                }
+                const n = Math.min(dates.length, values.length);
+                const header = ["Tanggal", "PrediksiHarga"];
+
+                // RFC 4180-safe CSV quoting
+                const quote = (v) => {
+                    const s = (v === null || v === undefined) ? "" : String(v);
+                    return `"${s.replace(/"/g, '""')}"`;
+                };
+
+                // Build rows
+                const rows = [header];
+                for (let i = 0; i < n; i++) {
+                    // keep raw numeric for CSV; format on read if needed
+                    const val = Number.isFinite(Number(values[i])) ? Number(values[i]) : values[i];
+                    rows.push([dates[i], val]);
+                }
+
+                // Join with CRLF (better for Excel/Windows)
+                const csvBody = rows.map(r => r.map(quote).join(",")).join("\r\n");
+
+                // Add UTF-8 BOM so Excel detects encoding
+                const BOM = "\uFEFF";
+                const csv = BOM + csvBody;
+
+                const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+
+                // Filename: replace dots to avoid some OS quirks
+                const safeTicker = String(ticker || "ticker").replace(/\./g, "_");
+                const filename = `prediksi_3bulan_${safeTicker}.csv`;
+
+                // Legacy IE/Edge (very old)
+                if (window.navigator && window.navigator.msSaveOrOpenBlob) {
+                    window.navigator.msSaveOrOpenBlob(blob, filename);
+                    return;
+                }
+
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = filename;
+                a.rel = "noopener"; // safety
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+            } catch (err) {
+                console.error("CSV download failed:", err);
+            }
         }
     </script>
 {% endblock %}

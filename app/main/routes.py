@@ -15,6 +15,7 @@ bp = Blueprint('main', __name__)
 # =======================
 #  Utility
 # =======================
+
 def find_csv_path():
     """Cari file CSV daftar saham IHSG."""
     project_root = Path(current_app.root_path).parent
@@ -95,13 +96,6 @@ def about():
         def log_func(msg):
             print(msg)
             logs.append(str(msg))
-        #
-        # try:
-        #     result = predict_ticker_xlstm(ticker, log=log_func)
-        #     results.append(result)
-        # except Exception as e:
-        #     logs.append(f"[ERROR] {e}")
-        #     flash(f"Gagal memproses {ticker}: {e}", "danger")
 
         try:
             res = predict_ticker_xlstm(ticker, log=log_func)
@@ -125,7 +119,6 @@ def about():
             logs.append(f"[ERROR] {e}")
             flash(f"Gagal memproses {ticker}: {e}", "danger")
 
-
         logs_per_ticker[ticker] = logs
 
         # >>> INI BAGIAN YANG MENGGANTIKAN all_prediction_results <<<
@@ -141,11 +134,6 @@ def about():
         flash("Tidak ada hasil prediksi yang valid.", "warning")
 
     return render_template(
-        # 'about.html',
-        # title='Hasil Prediksi xLSTM',
-        # amount=amount,
-        # results=results,
-        # logs_per_ticker=logs_per_ticker
 
         'about.html',
         title='Hasil Prediksi xLSTM',
