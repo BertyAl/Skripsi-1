@@ -1,6 +1,6 @@
 from __future__ import annotations
 import os, json, pickle
-from typing import Any, Dict, List
+from typing import Any, Dict
 from datetime import datetime
 import numpy as np
 import pandas as pd
@@ -35,7 +35,6 @@ def predict_ticker_xlstm(ticker: str, log=print) -> Dict[str, Any]:
     save_dir = os.path.join(base_dir, "data", "ticker_daily")
     os.makedirs(save_dir, exist_ok=True)
     csv_path = os.path.join(save_dir, f"{ticker}_daily.csv")
-
     df_to_save = df.copy()
     if "Adj Close" in df_to_save.columns:
         df_to_save = df_to_save.drop(columns=["Adj Close"])
@@ -98,7 +97,7 @@ def predict_ticker_xlstm(ticker: str, log=print) -> Dict[str, Any]:
     test_loader  = DataLoader(TensorDataset(testX,  testY),  batch_size=batch_sz, shuffle=False)
 
     # ---------- Model bundle paths ----------
-    #menyimpan hasil training agar dapat diload kembali
+    # mempersiapkan path untuk menyimpan model
     model_dir = os.path.join(base_dir, "Data", "models", ticker)
     os.makedirs(model_dir, exist_ok=True)
     model_path  = os.path.join(model_dir, "model.pth")
@@ -158,7 +157,6 @@ def predict_ticker_xlstm(ticker: str, log=print) -> Dict[str, Any]:
     #melakukan evaluasi harga RMSE MAE MAPE
     test_start_pos = split_idx + seq_len
     price_arr = price.values.astype("float64")
-
     model.eval()
     test_pred_s = []
     with torch.no_grad():
@@ -209,13 +207,20 @@ def predict_ticker_xlstm(ticker: str, log=print) -> Dict[str, Any]:
             r_hat   = float(y_scaler.inverse_transform([[r_hat_s]])[0, 0])
 
             mu60, sig20, ma20, rsi, bbw = rolling_stats(sim_prices)
+
             alpha = 0.30 * ((h+1)/H)
             r_hat = (1.0 - alpha) * r_hat + alpha * mu60
+
             kappa = 0.05
             gap = np.log(last_P) - np.log(max(ma20, 1e-8))
             r_hat = r_hat - kappa * gap
+
+            tilt = (rsi - 50.0) / 100.0
+            r_hat += 0.10 * tilt * (sig20 if np.isfinite(sig20) else 0.02)
+
             c = 2.5
             cap = c * (sig20 if np.isfinite(sig20) and sig20 > 0 else 0.02)
+            cap *= (1.0 + np.clip(bbw, 0.0, 0.5))
             r_hat = float(np.clip(r_hat, -cap, cap))
 
             next_P = last_P * np.exp(r_hat)

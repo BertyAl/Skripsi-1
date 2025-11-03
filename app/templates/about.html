@@ -35,6 +35,7 @@
                         Risiko: <strong>{{ "%.3f%%"|format(summary.risk * 100) }}</strong> |
                         Sharpe: <strong>{{ "%.3f"|format(summary.sharpe) }}</strong>
                     </div>
+
                     {% if summary and (summary.exp_return is not none) and (summary.exp_return < 0) %}
                         <div class="mt-1 small text-danger">
                             ⚠️ Expected return portofolio negatif ({{ "%.3f%%"|format(summary.exp_return * 100) }}).
@@ -46,6 +47,12 @@
                             {% endif %}
                         </div>
                     {% endif %}
+                    <!-- Tombol Download CSV -->
+                    <div class="d-flex justify-content-end mt-2">
+                        <button type="button" class="btn btn-outline-success btn-sm" onclick="downloadAllocCSV()">
+                            Unduh CSV (Alokasi Portofolio)
+                        </button>
+                    </div>
 
                 </div>
 
@@ -56,12 +63,14 @@
         {% else %}
             <div class="alert alert-warning">Belum ada alokasi (hasil optimasi kosong).</div>
         {% endif %}
+
         <div class="d-flex align-items-center justify-content-between mb-3">
             <h2 class="h4 mb-0">Hasil Prediksi Saham xLSTM</h2>
             {% if amount is not none %}
                 <span class="text-muted small">Dana: Rp {{ "{:,.0f}".format(amount or 0) }}</span>
             {% endif %}
         </div>
+
         {% if results|length == 0 %}
             <div class="alert alert-warning">Tidak ada hasil untuk ditampilkan.</div>
         {% else %}
@@ -142,12 +151,14 @@
                                                 </tbody>
                                             </table>
                                         </div>
+
                                         <div class="d-flex justify-content-end mt-2">
                                             <button type="button" class="btn btn-outline-secondary btn-sm"
-                                                    onclick="download3MCSV('{{ res.ticker }}', {{ res.future_dates|tojson }}, {{ res.future_values|tojson }})">
+                                                    onclick='download3MCSV("{{ res.ticker }}", {{ res.future_dates|tojson }}, {{ res.future_values|tojson }})'>
                                                 Unduh CSV 3 Bulan
                                             </button>
                                         </div>
+
                                     </div>
                                 </div>
                             {% else %}
@@ -173,26 +184,26 @@
     <script>
         (function(){
             // Line charts untuk tiap ticker
-            {% for res in results %}
-                (function(){
-                    const el = document.getElementById('chart_{{ loop.index }}');
-                    if (!el) return;
-                    new Chart(el.getContext('2d'), {
-                        type: 'line',
-                        data: {
-                            labels: Array.from({length: {{ res.actual|length }}}, (_,i)=>i+1),
-                            datasets: [
-                                {label:'Actual',   data: {{ res.actual|tojson }},  borderWidth: 2, fill: false},
-                                {label:'Prediksi', data: {{ res.preds|tojson }},   borderWidth: 2, fill: false}
-                            ]
-                        },
-                        options: { responsive:true, maintainAspectRatio:false,
-                            plugins:{ legend:{ position:'bottom', labels:{ boxWidth:16 } } },
-                            scales:{ x:{ display:false } }
-                        }
-                    });
-                })();
-            {% endfor %}
+{#            {% for res in results %}#}
+{#                (function(){#}
+{#                    const el = document.getElementById('chart_{{ loop.index }}');#}
+{#                    if (!el) return;#}
+{#                    new Chart(el.getContext('2d'), {#}
+{#                        type: 'line',#}
+{#                        data: {#}
+{#                            labels: Array.from({length: {{ res.actual|length }}}, (_,i)=>i+1),#}
+{#                            datasets: [#}
+{#                                {label:'Actual',   data: {{ res.actual|tojson }},  borderWidth: 2, fill: false},#}
+{#                                {label:'Prediksi', data: {{ res.preds|tojson }},   borderWidth: 2, fill: false}#}
+{#                            ]#}
+{#                        },#}
+{#                        options: { responsive:true, maintainAspectRatio:false,#}
+{#                            plugins:{ legend:{ position:'bottom', labels:{ boxWidth:16 } } },#}
+{#                            scales:{ x:{ display:false } }#}
+{#                        }#}
+{#                    });#}
+{#                })();#}
+{#            {% endfor %}#}
 
             // Pie chart alokasi dari df_alloc
             {% if df_alloc and df_alloc|length > 0 %}
@@ -214,45 +225,38 @@
             {% endif %}
         })();
     </script>
-
     <script>
-        function download3MCSV(ticker, dates, values) {
+        function downloadAllocCSV() {
             try {
-                if (!Array.isArray(dates) || !Array.isArray(values) || dates.length === 0) {
-                    console.warn("No data to export.");
+                // Ambil tabel pertama (alokasi portofolio)
+                const table = document.querySelector("table.table.table-sm");
+                if (!table) {
+                    alert("Tabel alokasi tidak ditemukan!");
                     return;
                 }
-                const n = Math.min(dates.length, values.length);
-                const header = ["Tanggal", "PrediksiHarga"];
 
-                // RFC 4180-safe CSV quoting
-                const quote = (v) => {
-                    const s = (v === null || v === undefined) ? "" : String(v);
-                    return `"${s.replace(/"/g, '""')}"`;
-                };
+                const rows = [];
+                const q = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`; // fungsi quoting CSV
 
-                // Build rows
-                const rows = [header];
-                for (let i = 0; i < n; i++) {
-                    // keep raw numeric for CSV; format on read if needed
-                    const val = Number.isFinite(Number(values[i])) ? Number(values[i]) : values[i];
-                    rows.push([dates[i], val]);
-                }
+                // Ambil header
+                const headers = Array.from(table.querySelectorAll("thead th")).map(th => th.innerText.trim());
+                rows.push(headers.map(q));
 
-                // Join with CRLF (better for Excel/Windows)
-                const csvBody = rows.map(r => r.map(quote).join(",")).join("\r\n");
+                // Ambil isi baris
+                const bodyRows = table.querySelectorAll("tbody tr");
+                bodyRows.forEach(tr => {
+                    const cols = Array.from(tr.querySelectorAll("td")).map(td => td.innerText.trim());
+                    rows.push(cols.map(q));
+                });
 
-                // Add UTF-8 BOM so Excel detects encoding
-                const BOM = "\uFEFF";
-                const csv = BOM + csvBody;
+                // Gabung baris
+                const csvBody = rows.map(r => r.join(",")).join("\r\n");
+                const csv = "\uFEFF" + csvBody; // Tambah BOM agar Excel aman
 
+                // Buat blob dan trigger download
                 const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+                const filename = `alokasi_portofolio_${new Date().toISOString().slice(0,10)}.csv`;
 
-                // Filename: replace dots to avoid some OS quirks
-                const safeTicker = String(ticker || "ticker").replace(/\./g, "_");
-                const filename = `prediksi_3bulan_${safeTicker}.csv`;
-
-                // Legacy IE/Edge (very old)
                 if (window.navigator && window.navigator.msSaveOrOpenBlob) {
                     window.navigator.msSaveOrOpenBlob(blob, filename);
                     return;
@@ -262,14 +266,80 @@
                 const a = document.createElement("a");
                 a.href = url;
                 a.download = filename;
-                a.rel = "noopener"; // safety
+                a.rel = "noopener";
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+
+            } catch (err) {
+                console.error("Gagal ekspor CSV:", err);
+                alert("Terjadi kesalahan saat mengekspor CSV.");
+            }
+        }
+    </script>
+    <script>
+        function download3MCSV(ticker, dates, values) {
+            try {
+                if (!dates || !values || dates.length === 0 || values.length === 0) {
+                    alert("Data prediksi 3 bulan tidak tersedia.");
+                    return;
+                }
+
+                const rows = [];
+                const q = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`; // quoting CSV
+
+                // Header CSV
+                rows.push([q("Ticker"), q("Tanggal"), q("Prediksi Harga")]);
+
+                // Isi baris
+                const n = Math.min(dates.length, values.length);
+                for (let i = 0; i < n; i++) {
+                    const tanggal = dates[i];
+                    const harga = values[i];
+
+                    // Pastikan harga dalam format 2 desimal
+                    const hargaStr = (typeof harga === "number")
+                        ? harga.toFixed(2)
+                        : String(harga);
+
+                    rows.push([
+                        q(ticker),
+                        q(tanggal),
+                        q(hargaStr)
+                    ]);
+                }
+
+                // Gabungkan jadi string CSV
+                const csvBody = rows.map(r => r.join(",")).join("\r\n");
+                const csv = "\uFEFF" + csvBody; // BOM untuk Excel
+
+                const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+                const today = new Date().toISOString().slice(0, 10);
+                const filename = `prediksi_3bulan_${ticker}_${today}.csv`;
+
+                // Support IE/Edge lama
+                if (window.navigator && window.navigator.msSaveOrOpenBlob) {
+                    window.navigator.msSaveOrOpenBlob(blob, filename);
+                    return;
+                }
+
+                // Trigger download
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = filename;
+                a.rel = "noopener";
                 document.body.appendChild(a);
                 a.click();
                 a.remove();
                 URL.revokeObjectURL(url);
             } catch (err) {
-                console.error("CSV download failed:", err);
+                console.error("Gagal ekspor CSV 3 bulan:", err);
+                alert("Terjadi kesalahan saat mengekspor CSV 3 bulan.");
             }
         }
     </script>
+
+
 {% endblock %}

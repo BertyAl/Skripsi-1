@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-# portfolio_opt_gurobi.py  —  Markowitz (Continuous & MIQP) + near-PSD
 from __future__ import annotations
 
 import math
@@ -34,8 +32,6 @@ def _to_log_returns_from_prices(prices: np.ndarray) -> np.ndarray:
     return np.diff(np.log(prices))
 
 # menghitung nilai dari expected return
-
-
 def _expected_return_from_path(prices: np.ndarray, mode: str = "simple") -> float:
     prices = np.asarray(prices, dtype=float).reshape(-1)
     if len(prices) < 2:
@@ -47,7 +43,6 @@ def _expected_return_from_path(prices: np.ndarray, mode: str = "simple") -> floa
     return float(np.mean(r)) if len(r) else 0.0
 
 # menghitung nilai dari matriks kovarians
-
 def _covariance_from_paths(paths: dict, use_log: bool = True) -> pd.DataFrame:
     min_len = min(len(v) for v in paths.values() if isinstance(v, (list, np.ndarray)))
     if min_len < 2:
@@ -191,13 +186,13 @@ def solve_min_variance_for_target_return(
     mu_tgt = float(np.clip(mu_target, mu_min, mu_max))
 
     m = gp.Model("MinVar_TargetReturn")
-    m.Params.OutputFlag = 1 # Gurobi tidak akan memunculkan log karena dimatikan disini
+    m.Params.OutputFlag = 1
     m.Params.NonConvex = 2  # jaring pengaman numerik
 
-    lb, ub = (-1.0, wmax_eff) if allow_short else (0.0, wmax_eff)
+    lb, ub = (-1.0, wmax_eff) if allow_short else (0.0, wmax_eff) #fungsi 30d shortselling
     x = m.addMVar(n, lb=lb, ub=ub, name="x")
 
-    #disamain
+
     m.addConstr(x.sum() == 1.0, name="budget") #fungsi 30c
     m.addConstr(mu_v @ x >= mu_tgt, name="min_return")#fungsi 30b
     m.setObjective(obj_scale * (x @ S @ x), gp.GRB.MINIMIZE)# fungsi 30a
@@ -211,9 +206,7 @@ def solve_min_variance_for_target_return(
     eret = float(mu_v @ x.X)
     return {"status": "optimal", "weights": w, "risk": risk, "exp_return": eret}
 
-# =========================
-# Public API for Flask
-# =========================
+
 def optimize_portfolio_gurobi(
         results: list,
         dana: float,

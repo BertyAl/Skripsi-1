@@ -11,10 +11,7 @@
                     <div class="mx-auto" style="max-width:640px;">
                         <form id="optim-form" action="{{ url_for('main.about') }}" method="post"
                               class="card p-4 shadow-lg bg-transparent border-0">
-                            <div class="mb-4">
-                                <span class="small text-muted">Dana (preview): </span>
-                                <strong id="amount-display">Rp 0</strong>
-                            </div>
+
                             <!-- Input Dana -->
                             <div class="mb-3">
                                 <label for="amount" class="form-label fw-semibold text-black">Masukkan Dana Anda (IDR):</label>
@@ -53,7 +50,7 @@
                                             </div>
                                         {% endfor %}
                                     </div>
-                                    <div class="form-text">Centang saham yang ingin Anda gunakan (tanpa perlu menekan Ctrl).</div>
+                                    <div class="form-text">Centang saham yang ingin Anda gunakan.</div>
                                 {% else %}
                                     <div class="alert alert-warning">
                                         Daftar saham tidak tersedia. Pastikan file <code>Data/Ticker/ihsg_tickers.CSV</code> ada dan berisi kolom <strong>code,name</strong>.
@@ -79,10 +76,14 @@
                     </div>
                 </div>
 
-                <!-- TABEL RINGKASAN PILIHAN -->
+                <!-- TABEL HASIL PILIHAN -->
                 <div class="col-12 col-lg-5">
                     <div class="card shadow-sm border-0 position-sticky" style="top: 88px;">
                         <div class="card-body">
+                            <div class="mb-4">
+                                <span class="small text-muted">Dana: </span>
+                                <strong id="amount-display">Rp 0</strong>
+                            </div>
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <h5 class="mb-0">Saham Terpilih</h5>
                                 <h5 class="mb-0"><span id="selected-count">0</span></h5>
@@ -115,10 +116,9 @@
         </div>
     </section>
 
-    <!-- JS -->
     <script>
         (function(){
-            // 🔍 Filter pencarian saham
+            //  Filter pencarian saham
             const searchInput = document.getElementById('ticker-search');
             const container   = document.getElementById('ticker-list');
             if (searchInput && container) {
@@ -134,7 +134,7 @@
                 searchInput.addEventListener('input', onSearch);
             }
 
-            // 🔘 Pilih Semua / Hapus Semua
+            //  Pilih Semua / Hapus Semua
             const selectAllBtn = document.getElementById('select-all');
             const clearAllBtn  = document.getElementById('clear-all');
             if (selectAllBtn && clearAllBtn && container) {
@@ -148,7 +148,7 @@
                 });
             }
 
-            // 🧾 Render pilihan ke TABEL di sidebar (tanpa parsing dash)
+            //  Render pilihan ke TABEL di sidebar (tanpa parsing dash)
             function updateSelectedList() {
                 const tbody   = document.getElementById('selected-tbody');
                 const empty   = document.getElementById('selected-empty');
@@ -198,7 +198,7 @@
                 if (empty) empty.style.display = n === 0 ? '' : 'none';
             }
 
-            // ⚙️ Alert saat submit
+            //  Alert saat submit
             const form   = document.getElementById('optim-form');
             const alert  = document.getElementById('training-alert');
             const submit = document.getElementById('submit-btn');
@@ -212,7 +212,7 @@
                 });
             }
 
-            // 🔗 Event: checkbox berubah
+            //  Event: checkbox berubah
             if (container) {
                 container.addEventListener('change', (e) => {
                     if (e.target && e.target.matches('input[type="checkbox"]')) {
