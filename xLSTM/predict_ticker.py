@@ -19,7 +19,6 @@ from xLSTM.xLSTM import xLSTM
 
 def predict_ticker_xlstm(ticker: str, log=print) -> Dict[str, Any]:
 
-    # ---------- Download & save CSV ----------
     log(f"[INFO] Downloading {ticker}...")
     #melakukan pengambilan data dari yfinance
     df = yf.download(ticker, period="10y", interval="1d", auto_adjust=False, progress=False)
@@ -96,7 +95,6 @@ def predict_ticker_xlstm(ticker: str, log=print) -> Dict[str, Any]:
     train_loader = DataLoader(TensorDataset(trainX, trainY), batch_size=batch_sz, shuffle=True)
     test_loader  = DataLoader(TensorDataset(testX,  testY),  batch_size=batch_sz, shuffle=False)
 
-    # ---------- Model bundle paths ----------
     # mempersiapkan path untuk menyimpan model
     model_dir = os.path.join(base_dir, "Data", "models", ticker)
     os.makedirs(model_dir, exist_ok=True)
@@ -104,14 +102,13 @@ def predict_ticker_xlstm(ticker: str, log=print) -> Dict[str, Any]:
     scaler_path = os.path.join(model_dir, "scaler.pkl")
     config_path = os.path.join(model_dir, "config.json")
 
-    # ---------- Model ----------
+    # Model
     input_size, head_size, num_heads = 1, 32, 2
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = xLSTM(input_size, head_size, num_heads, layers='msm', batch_first=True).to(device)
     criterion = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
-    # ---------- Load or Train ----------
     #jika suddah terdapat data sebelumnya yang ditraining, maka akan di load kembali
     loaded = False
     if os.path.exists(model_path) and os.path.exists(scaler_path):
@@ -153,7 +150,6 @@ def predict_ticker_xlstm(ticker: str, log=print) -> Dict[str, Any]:
             json.dump(config, f, indent=4)
         log(f"[SAVE] Bundle saved to {model_dir}")
 
-    # ---------- Evaluate 1-step in PRICE ----------
     #melakukan evaluasi harga RMSE MAE MAPE
     test_start_pos = split_idx + seq_len
     price_arr = price.values.astype("float64")
@@ -176,7 +172,6 @@ def predict_ticker_xlstm(ticker: str, log=print) -> Dict[str, Any]:
     mape = float(np.mean(np.abs((pred_prices - actual_prices) / actual_prices)) * 100.0)
     log(f"[DONE] {ticker} | MAE={mae:.4f} | RMSE={rmse:.4f} | MAPE={mape:.2f}%")
 
-    # ---------- Forecast 60 days ----------
     #melakukan prediksi sebanyak 60 hari
     H = 60
     sim_prices = list(price_arr)

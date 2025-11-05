@@ -104,7 +104,6 @@ class sLSTMBlock(nn.Module):
 
 
 class sLSTM(nn.Module):
-    # TODO: Add bias, dropout, bidirectional
     def __init__(self, input_size, head_size, num_heads, num_layers=1, batch_first=False, proj_factor=4 / 3):
         super(sLSTM, self).__init__()
         self.input_size = input_size
@@ -221,7 +220,6 @@ class mLSTMBlock(nn.Module):
 
 
 class mLSTM(nn.Module):
-    # TODO: Add bias, dropout, bidirectional
     def __init__(self, input_size, head_size, num_heads, num_layers=1, batch_first=False, proj_factor=2):
         super(mLSTM, self).__init__()
         self.input_size = input_size
@@ -268,7 +266,6 @@ class mLSTM(nn.Module):
 
 
 class xLSTM(nn.Module):
-    # TODO: Add bias, dropout, bidirectional
     def __init__(self, input_size, head_size, num_heads, layers, batch_first=False, proj_factor_slstm=4 / 3,
                  proj_factor_mlstm=2):
         super(xLSTM, self).__init__()

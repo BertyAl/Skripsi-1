@@ -12,9 +12,6 @@ except Exception as e:
     _GUROBI_OK = False
     _GUROBI_ERR = e
 
-# =========================
-# Utilities
-# =========================
 # mengecek ketersedian lisensi
 def _validate_gurobi():
     if not _GUROBI_OK:
@@ -59,7 +56,6 @@ def _covariance_from_paths(paths: dict, use_log: bool = True) -> pd.DataFrame:
     return dfR.cov()       # sample covariance (N×N)
 
 # menambahkan sedikit nilai kedalam diagonal jika matriks bermasalah
-
 def _near_psd(S: np.ndarray, lam: float = 0.10, jitter: float = 1e-8) -> np.ndarray:
     S = np.asarray(S, dtype=float)
     S = (S + S.T) / 2.0
@@ -104,9 +100,7 @@ def _mu_bounds(mu: np.ndarray, wmax: float | None, allow_short: bool) -> tuple[f
     return float(mu_min), float(mu_max)
 
 
-# =========================
-# Build μ (vector) & Σ (matrix) dari results
-# =========================
+
 # penghubahan data xLSTM menjadi input return dan matriks covarians
 # dengan memanggil fungsi sebelumnya
 def build_mu_sigma_from_results(
@@ -157,9 +151,6 @@ def build_mu_sigma_from_results(
     return mu, Sigma
 
 
-# =========================
-# Continuous solvers
-# =========================
 #fungsi yang digunakan untuk melakukan optimasi alokasi portofolio
 def solve_min_variance_for_target_return(
         mu: pd.Series,
@@ -287,7 +278,7 @@ def optimize_portfolio_gurobi(
             "summary":  {"exp_return": math.nan, "risk": math.nan, "sharpe": math.nan, "status": status}
         }
 
-        # === Tabel alokasi
+    # Tabel alokasi
     df_alloc = pd.DataFrame({"ticker": w.index, "weight": w.values})
     df_alloc["nominal"] = df_alloc["weight"] * float(dana)
     df_alloc["exp_return"] = df_alloc["ticker"].map(mu.to_dict())
