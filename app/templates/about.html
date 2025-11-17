@@ -88,10 +88,6 @@
                                 <li>MAPE: <strong>{{ "%.2f"|format(res.mape) }}%</strong></li>
                             </ul>
 
-{#                            <div class="chart-wrap mb-2">#}
-{#                                <canvas id="chart_{{ loop.index }}" height="160"></canvas>#}
-{#                            </div>#}
-
                             <div class="table-responsive mb-2">
                                 <table class="table table-sm align-middle mb-0">
                                     <thead>
@@ -167,12 +163,6 @@
                                 </div>
                             {% endif %}
 
-{#                            {% if logs_per_ticker %}#}
-{#                                <details class="small text-muted">#}
-{#                                    <summary class="mb-1">Lihat proses training & evaluasi</summary>#}
-{#                                    <pre class="mb-0 small" style="white-space:pre-wrap">{{ logs_per_ticker[res.ticker]|join('\n') }}</pre>#}
-{#                                </details>#}
-{#                            {% endif %}#}
                         </div>
                     </div>
                 {% endfor %}
@@ -183,27 +173,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         (function(){
-            // Line charts untuk tiap ticker
-{#            {% for res in results %}#}
-{#                (function(){#}
-{#                    const el = document.getElementById('chart_{{ loop.index }}');#}
-{#                    if (!el) return;#}
-{#                    new Chart(el.getContext('2d'), {#}
-{#                        type: 'line',#}
-{#                        data: {#}
-{#                            labels: Array.from({length: {{ res.actual|length }}}, (_,i)=>i+1),#}
-{#                            datasets: [#}
-{#                                {label:'Actual',   data: {{ res.actual|tojson }},  borderWidth: 2, fill: false},#}
-{#                                {label:'Prediksi', data: {{ res.preds|tojson }},   borderWidth: 2, fill: false}#}
-{#                            ]#}
-{#                        },#}
-{#                        options: { responsive:true, maintainAspectRatio:false,#}
-{#                            plugins:{ legend:{ position:'bottom', labels:{ boxWidth:16 } } },#}
-{#                            scales:{ x:{ display:false } }#}
-{#                        }#}
-{#                    });#}
-{#                })();#}
-{#            {% endfor %}#}
 
             // Pie chart alokasi dari df_alloc
             {% if df_alloc and df_alloc|length > 0 %}

@@ -55,7 +55,7 @@ def predict_ticker_xlstm(ticker: str, log=print) -> Dict[str, Any]:
         last_date = last_date.tz_localize(None)
     next_bd = last_date + BDay(1)
 
-    # ---------- Series & returns ----------
+    #perhitungan OHLC
     need = ["Open", "High", "Low", "Close"]
     for c in need:
         if c not in df.columns:
@@ -102,7 +102,7 @@ def predict_ticker_xlstm(ticker: str, log=print) -> Dict[str, Any]:
     scaler_path = os.path.join(model_dir, "scaler.pkl")
     config_path = os.path.join(model_dir, "config.json")
 
-    # Model
+    #model
     input_size, head_size, num_heads = 1, 32, 2
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = xLSTM(input_size, head_size, num_heads, layers='msm', batch_first=True).to(device)
@@ -231,13 +231,9 @@ def predict_ticker_xlstm(ticker: str, log=print) -> Dict[str, Any]:
     pred_1d_date  = future_dates[0]
     pred_3mo_date = future_dates[-1]
 
-    actual_list = [float(x) for x in actual_prices.tolist()]
-    preds_list  = [float(x) for x in pred_prices.tolist()]
-
     return {
         "ticker": ticker,
         "mae": float(mae), "rmse": float(rmse), "mape": float(mape),
-        "actual": actual_list, "preds": preds_list,
         "last_price": float(price.values[-1]),
         "next_pred": float(pred_1d),
         "last_date": last_date.date().isoformat(),
