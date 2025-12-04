@@ -278,8 +278,8 @@ class xLSTM(nn.Module):
         self.batch_first = batch_first
         self.proj_factor_slstm = proj_factor_slstm
         self.proj_factor_mlstm = proj_factor_mlstm
-
         self.layers = nn.ModuleList()
+
         for layer_type in layers:
             if layer_type == 's':
                 layer = sLSTMBlock(input_size, head_size, num_heads, proj_factor_slstm)
