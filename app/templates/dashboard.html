@@ -1,267 +1,692 @@
+{#{% extends 'base.html' %}#}
+{#{% block content %}#}
+{#    <section class="hero-cta position-relative py-5">#}
+{#        <div class="hero-cta__bg"></div>#}
+{#        <div class="container" style="max-width:980px;">#}
+{#            <h1 class="text-center fw-bold text-black mb-4">Optimasi Portofolio Saham IHSG</h1>#}
+{##}
+{#            <div class="row g-4 align-items-start">#}
+{#                <!--KATEGORI-->#}
+{#                <div class="col-12 col-lg-7">#}
+{#                    <div class="mx-auto" style="max-width:640px; ">#}
+{##}
+{#                    </div>#}
+{#                </div>#}
+{##}
+{#                <!--FORM -->#}
+{#                <div class="col-12 col-lg-7">#}
+{#                    <div class="mx-auto" style="max-width:640px;">#}
+{#                        <form id="optim-form" action="{{ url_for('main.about') }}" method="post"#}
+{#                              class="card p-4 shadow-lg bg-transparent border-0">#}
+{##}
+{#                            <!-- Input Dana -->#}
+{#                            <div class="mb-3">#}
+{#                                <label for="amount" class="form-label fw-semibold text-black">Masukkan Dana Anda (IDR):</label>#}
+{#                                <input id="amount" name="amount" type="number" min="0" step="1000"#}
+{#                                       class="form-control form-control-lg cta-input"#}
+{#                                       placeholder="Masukkan nominal dana…" required>#}
+{#                                <span class="input-hint">Contoh: 10000000</span>#}
+{#                            </div>#}
+{##}
+{#                            <!-- Pilih Saham IHSG -->#}
+{#                            <div class="mb-3">#}
+{#                                <label class="form-label fw-semibold text-black">Pilih Saham IHSG</label>#}
+{##}
+{#                                <!-- Search bar -->#}
+{#                                <input id="ticker-search" type="text" class="form-control form-control-lg mb-3"#}
+{#                                       placeholder="Cari saham (ketik min. 3 huruf, mis. 'BBR' atau 'tel')" autocomplete="off">#}
+{#                                <div id="searchHelp" class="form-text mb-2">#}
+{#                                    Ketik minimal 3 huruf untuk memfilter berdasarkan kode atau nama.#}
+{#                                </div>#}
+{##}
+{#                                {% if tickers and tickers|length > 0 %}#}
+{#                                    <div class="d-flex justify-content-between mb-2">#}
+{#                                        <button type="button" id="select-all" class="btn btn-sm btn-outline-primary">Pilih Semua</button>#}
+{#                                        <button type="button" id="clear-all" class="btn btn-sm btn-outline-secondary">Hapus Semua</button>#}
+{#                                    </div>#}
+{##}
+{#                                    <div id="ticker-list" class="border rounded p-3" style="max-height: 300px; overflow-y: auto;">#}
+{#                                        {% for code, name in tickers %}#}
+{#                                            <div class="form-check mb-1">#}
+{#                                                <input class="form-check-input" type="checkbox" name="tickers[]" id="tick_{{ loop.index }}" value="{{ code }}">#}
+{#                                                <label class="form-check-label" for="tick_{{ loop.index }}">#}
+{#                                                    <strong class="stock-code">{{ code }}</strong>#}
+{#                                                    <span class="mx-1">—</span>#}
+{#                                                    <span class="stock-name">{{ name }}</span>#}
+{#                                                </label>#}
+{#                                            </div>#}
+{#                                        {% endfor %}#}
+{#                                    </div>#}
+{#                                    <div class="form-text">Centang saham yang ingin Anda gunakan.</div>#}
+{#                                {% else %}#}
+{#                                    <div class="alert alert-warning">#}
+{#                                        Daftar saham tidak tersedia. Pastikan file <code>Data/Ticker/ihsg_tickers.CSV</code> ada dan berisi kolom <strong>code,name</strong>.#}
+{#                                    </div>#}
+{#                                {% endif %}#}
+{#                            </div>#}
+{##}
+{#                            <!-- ALERT: Sedang Training -->#}
+{#                            <div id="training-alert" class="alert alert-info d-none mt-3" role="alert">#}
+{#                                <div class="d-flex align-items-center gap-2">#}
+{#                                    <div class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></div>#}
+{#                                    <div><strong>Sedang melakukan training model…</strong> Mohon tunggu sebentar.</div>#}
+{#                                </div>#}
+{#                            </div>#}
+{##}
+{#                            <!-- Tombol Submit -->#}
+{#                            <button id="submit-btn" type="submit"#}
+{#                                    class="btn btn-primary btn-lg w-75 rounded-3 fw-semibold d-block mx-auto"#}
+{#                                    {% if not tickers or tickers|length == 0 %}disabled{% endif %}>#}
+{#                                Tampilkan Rekomendasi#}
+{#                            </button>#}
+{#                        </form>#}
+{#                    </div>#}
+{#                </div>#}
+{##}
+{#                <!-- TABEL HASIL PILIHAN -->#}
+{#                <div class="col-12 col-lg-5">#}
+{#                    <div class="card shadow-sm border-0 position-sticky" style="top: 88px;">#}
+{#                        <div class="card-body">#}
+{#                            <div class="mb-4">#}
+{#                                <span class="small text-muted">Dana: </span>#}
+{#                                <strong id="amount-display">Rp 0</strong>#}
+{#                            </div>#}
+{#                            <div class="d-flex justify-content-between align-items-center mb-2">#}
+{#                                <h5 class="mb-0">Saham Terpilih</h5>#}
+{#                                <h5 class="mb-0"><span id="selected-count">0</span></h5>#}
+{#                            </div>#}
+{##}
+{#                            <div id="selected-empty" class="form-text mb-2">Belum ada saham yang dipilih.</div>#}
+{##}
+{#                            <div class="table-responsive no-x-scroll">#}
+{#                                <table class="table table-sm align-middle mb-0 table-fixed">#}
+{#                                    <colgroup>#}
+{#                                        <col style="width:auto">#}
+{#                                        <col style="width:auto">#}
+{#                                        <col style="width:auto">#}
+{#                                    </colgroup>#}
+{#                                    <thead class="table-light">#}
+{#                                    <tr>#}
+{#                                        <th>Kode</th>#}
+{#                                        <th>Nama</th>#}
+{#                                        <th></th>#}
+{#                                    </tr>#}
+{#                                    </thead>#}
+{#                                    <tbody id="selected-tbody"></tbody>#}
+{#                                </table>#}
+{#                            </div>#}
+{##}
+{#                        </div>#}
+{#                    </div>#}
+{#                </div>#}
+{#            </div>#}
+{#        </div>#}
+{#    </section>#}
+{##}
+{#    <script>#}
+{#        (function(){#}
+{#            //  Filter pencarian saham#}
+{#            const searchInput = document.getElementById('ticker-search');#}
+{#            const container   = document.getElementById('ticker-list');#}
+{#            if (searchInput && container) {#}
+{#                const items = Array.from(container.querySelectorAll('.form-check'));#}
+{#                const debounce = (fn, wait=150) => { let t; return (...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),wait);} };#}
+{#                const onSearch = debounce(()=>{#}
+{#                    const q = (searchInput.value || '').trim().toLowerCase();#}
+{#                    items.forEach(div=>{#}
+{#                        const text = div.textContent.toLowerCase();#}
+{#                        div.style.display = (q.length<3 || text.includes(q)) ? '' : 'none';#}
+{#                    });#}
+{#                });#}
+{#                searchInput.addEventListener('input', onSearch);#}
+{#            }#}
+{##}
+{#            //  Pilih Semua / Hapus Semua#}
+{#            const selectAllBtn = document.getElementById('select-all');#}
+{#            const clearAllBtn  = document.getElementById('clear-all');#}
+{#            if (selectAllBtn && clearAllBtn && container) {#}
+{#                selectAllBtn.addEventListener('click', ()=> {#}
+{#                    container.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true);#}
+{#                    updateSelectedList();#}
+{#                });#}
+{#                clearAllBtn.addEventListener('click', ()=> {#}
+{#                    container.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);#}
+{#                    updateSelectedList();#}
+{#                });#}
+{#            }#}
+{##}
+{#            //  Render pilihan ke TABEL di sidebar (tanpa parsing dash)#}
+{#            function updateSelectedList() {#}
+{#                const tbody   = document.getElementById('selected-tbody');#}
+{#                const empty   = document.getElementById('selected-empty');#}
+{#                const countEl = document.getElementById('selected-count');#}
+{#                const container = document.getElementById('ticker-list');#}
+{#                if (!tbody || !container) return;#}
+{##}
+{#                const checked = Array.from(container.querySelectorAll('input[type="checkbox"]:checked'))#}
+{#                    .map(cb => {#}
+{#                        const label = cb.closest('.form-check')?.querySelector('label');#}
+{#                        const code  = label?.querySelector('.stock-code')?.textContent?.trim() || cb.value;#}
+{#                        const name  = label?.querySelector('.stock-name')?.textContent?.trim() || '';#}
+{#                        return { code, name };#}
+{#                    });#}
+{##}
+{#                tbody.innerHTML = '';#}
+{#                checked.forEach(({ code, name }) => {#}
+{#                    const tr = document.createElement('tr');#}
+{##}
+{#                    const tdCode = document.createElement('td');#}
+{#                    tdCode.textContent = code;#}
+{##}
+{#                    const tdName = document.createElement('td');#}
+{#                    tdName.textContent = name || '-';#}
+{#                    tdName.title = name || ''; // tooltip nama penuh#}
+{##}
+{#                    const tdAct = document.createElement('td');#}
+{#                    const btn = document.createElement('button');#}
+{#                    btn.type = 'button';#}
+{#                    btn.className = 'btn btn-sm btn-outline-danger';#}
+{#                    btn.textContent = '❌';#}
+{#                    btn.title = 'Hapus';#}
+{#                    btn.addEventListener('click', () => {#}
+{#                        const cb = container.querySelector(`input[type="checkbox"][value="${code}"]`);#}
+{#                        if (cb) { cb.checked = false; updateSelectedList(); }#}
+{#                    });#}
+{#                    tdAct.appendChild(btn);#}
+{##}
+{#                    tr.appendChild(tdCode);#}
+{#                    tr.appendChild(tdName);#}
+{#                    tr.appendChild(tdAct);#}
+{#                    tbody.appendChild(tr);#}
+{#                });#}
+{##}
+{#                const n = checked.length;#}
+{#                if (countEl) countEl.textContent = n;#}
+{#                if (empty) empty.style.display = n === 0 ? '' : 'none';#}
+{#            }#}
+{##}
+{#            //  Alert saat submit#}
+{#            const form   = document.getElementById('optim-form');#}
+{#            const alert  = document.getElementById('training-alert');#}
+{#            const submit = document.getElementById('submit-btn');#}
+{#            if (form) {#}
+{#                form.addEventListener('submit', () => {#}
+{#                    alert.classList.remove('d-none');#}
+{#                    submit.disabled = true;#}
+{#                    submit.innerHTML =#}
+{#                        '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Melatih model…';#}
+{#                    submit.classList.add('disabled');#}
+{#                });#}
+{#            }#}
+{##}
+{#            //  Event: checkbox berubah#}
+{#            if (container) {#}
+{#                container.addEventListener('change', (e) => {#}
+{#                    if (e.target && e.target.matches('input[type="checkbox"]')) {#}
+{#                        updateSelectedList();#}
+{#                    }#}
+{#                });#}
+{#            }#}
+{##}
+{#            // Render awal#}
+{#            updateSelectedList();#}
+{#        })();#}
+{##}
+{##}
+{#    </script>#}
+{#    <script>#}
+{#        // Formatter Rupiah#}
+{#        function formatRupiah(num) {#}
+{#            const n = Number(num);#}
+{#            if (!isFinite(n)) return 'Rp 0';#}
+{#            return new Intl.NumberFormat('id-ID', {#}
+{#                style: 'currency',#}
+{#                currency: 'IDR',#}
+{#                maximumFractionDigits: 0#}
+{#            }).format(n);#}
+{#        }#}
+{##}
+{#        (function attachAmountPreview(){#}
+{#            const amountInput = document.getElementById('amount');#}
+{#            const amountOut   = document.getElementById('amount-display');#}
+{#            if (!amountInput || !amountOut) return;#}
+{##}
+{#            const render = () => {#}
+{#                const val = parseFloat(amountInput.value);#}
+{#                amountOut.textContent = formatRupiah(isNaN(val) ? 0 : val);#}
+{#            };#}
+{##}
+{#            // Render awal (kalau ada nilai default)#}
+{#            render();#}
+{##}
+{#            // Update saat user mengetik#}
+{#            amountInput.addEventListener('input', render);#}
+{##}
+{#            // Opsional: cegah nilai negatif#}
+{#            amountInput.addEventListener('change', () => {#}
+{#                if (amountInput.value && Number(amountInput.value) < 0) {#}
+{#                    amountInput.value = 0;#}
+{#                    render();#}
+{#                }#}
+{#            });#}
+{#        })();#}
+{#    </script>#}
+{#{% endblock %}#}
 {% extends 'base.html' %}
+
 {% block content %}
     <section class="hero-cta position-relative py-5">
         <div class="hero-cta__bg"></div>
-        <div class="container" style="max-width:980px;">
+        <div class="container" style="max-width:1100px;">
             <h1 class="text-center fw-bold text-black mb-4">Optimasi Portofolio Saham IHSG</h1>
 
             <div class="row g-4 align-items-start">
-                <!--FORM -->
-                <div class="col-12 col-lg-7">
-                    <div class="mx-auto" style="max-width:640px;">
-                        <form id="optim-form" action="{{ url_for('main.about') }}" method="post"
-                              class="card p-4 shadow-lg bg-transparent border-0">
 
-                            <!-- Input Dana -->
-                            <div class="mb-3">
-                                <label for="amount" class="form-label fw-semibold text-black">Masukkan Dana Anda (IDR):</label>
-                                <input id="amount" name="amount" type="number" min="0" step="1000"
-                                       class="form-control form-control-lg cta-input"
-                                       placeholder="Masukkan nominal dana…" required>
-                                <span class="input-hint">Contoh: 10000000</span>
+                <!-- KOLOM KIRI: FORM INPUT & PEMILIHAN SAHAM -->
+                <div class="col-12 col-lg-7">
+                    <div class="card p-4 shadow-lg bg-white border-0 rounded-4">
+                        <form id="optim-form" action="{{ url_for('main.about') }}" method="post">
+
+                            <!-- 1. Input Dana -->
+                            <div class="mb-4">
+                                <label for="amount" class="form-label fw-bold text-dark">Modal Investasi (IDR)</label>
+                                <div class="input-group input-group-lg">
+                                    <span class="input-group-text bg-light border-end-0">Rp</span>
+                                    <input id="amount" name="amount" type="number" min="100000" step="10000"
+                                           class="form-control border-start-0 ps-0"
+                                           placeholder="Contoh: 10000000" required>
+                                </div>
+                                <div class="form-text text-end" id="amount-text-preview">Rp 0</div>
                             </div>
 
-                            <!-- Pilih Saham IHSG -->
-                            <div class="mb-3">
-                                <label class="form-label fw-semibold text-black">Pilih Saham IHSG</label>
+                            <hr class="my-4">
 
-                                <!-- Search bar -->
-                                <input id="ticker-search" type="text" class="form-control form-control-lg mb-3"
-                                       placeholder="Cari saham (ketik min. 3 huruf, mis. 'BBR' atau 'tel')" autocomplete="off">
-                                <div id="searchHelp" class="form-text mb-2">
-                                    Ketik minimal 3 huruf untuk memfilter berdasarkan kode atau nama.
+                            <!-- 2. Filter & Pencarian Saham -->
+                            <div class="mb-3">
+                                <label class="form-label fw-bold text-dark">Pilih Saham</label>
+
+                                <div class="row g-2 mb-2">
+                                    <!-- Dropdown Sektor -->
+                                    <div class="col-md-6">
+                                        <select id="sectorSelect" class="form-select">
+                                            <option value="all">-- Semua Sektor --</option>
+                                            {% if sectors_data %}
+                                                {% for sector_name in sectors_data.keys()|sort %}
+                                                    <option value="{{ sector_name }}">{{ sector_name }}</option>
+                                                {% endfor %}
+                                            {% endif %}
+                                        </select>
+                                    </div>
+                                    <!-- Input Pencarian -->
+                                    <div class="col-md-6">
+                                        <input id="ticker-search" type="text" class="form-control"
+                                               placeholder="Cari kode (mis. BBRI)..." autocomplete="off">
+                                    </div>
                                 </div>
 
-                                {% if tickers and tickers|length > 0 %}
-                                    <div class="d-flex justify-content-between mb-2">
-                                        <button type="button" id="select-all" class="btn btn-sm btn-outline-primary">Pilih Semua</button>
-                                        <button type="button" id="clear-all" class="btn btn-sm btn-outline-secondary">Hapus Semua</button>
+                                <!-- Tombol Kontrol Cepat -->
+                                <div class="d-flex justify-content-between mb-2">
+                                    <small class="text-muted fst-italic align-self-center" id="showing-info">Menampilkan semua saham</small>
+                                    <div>
+                                        <button type="button" id="select-visible" class="btn btn-sm btn-outline-primary me-1">Pilih Tampil</button>
+                                        <button type="button" id="clear-visible" class="btn btn-sm btn-outline-secondary">Reset Tampil</button>
                                     </div>
+                                </div>
 
-                                    <div id="ticker-list" class="border rounded p-3" style="max-height: 300px; overflow-y: auto;">
-                                        {% for code, name in tickers %}
-                                            <div class="form-check mb-1">
-                                                <input class="form-check-input" type="checkbox" name="tickers[]" id="tick_{{ loop.index }}" value="{{ code }}">
-                                                <label class="form-check-label" for="tick_{{ loop.index }}">
-                                                    <strong class="stock-code">{{ code }}</strong>
-                                                    <span class="mx-1">—</span>
-                                                    <span class="stock-name">{{ name }}</span>
-                                                </label>
-                                            </div>
-                                        {% endfor %}
+                                <!-- Container Daftar Saham (Scrollable) -->
+                                <div id="ticker-list-container" class="border rounded bg-light p-3 position-relative" style="height: 350px; overflow-y: auto;">
+                                    <!-- Loader awal -->
+                                    <div id="loader-msg" class="text-center mt-5 text-muted">
+                                        <div class="spinner-border spinner-border-sm text-primary mb-2" role="status"></div>
+                                        <p>Memuat data saham...</p>
                                     </div>
-                                    <div class="form-text">Centang saham yang ingin Anda gunakan.</div>
-                                {% else %}
-                                    <div class="alert alert-warning">
-                                        Daftar saham tidak tersedia. Pastikan file <code>Data/Ticker/ihsg_tickers.CSV</code> ada dan berisi kolom <strong>code,name</strong>.
-                                    </div>
-                                {% endif %}
+                                    <!-- Item saham akan di-generate via JavaScript di sini -->
+                                </div>
+                                <div class="form-text mt-1"><i class="bi bi-info-circle"></i> Centang saham yang ingin dianalisis.</div>
                             </div>
 
-                            <!-- ALERT: Sedang Training -->
-                            <div id="training-alert" class="alert alert-info d-none mt-3" role="alert">
-                                <div class="d-flex align-items-center gap-2">
-                                    <div class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></div>
-                                    <div><strong>Sedang melakukan training model…</strong> Mohon tunggu sebentar.</div>
+                            <!-- Alert Loading (Hidden by default) -->
+                            <div id="training-alert" class="alert alert-primary d-none mt-3 border-0 shadow-sm" role="alert">
+                                <div class="d-flex align-items-center">
+                                    <div class="spinner-border spinner-border-sm me-3" role="status"></div>
+                                    <div>
+                                        <strong>Sedang Menganalisis...</strong>
+                                        <div class="small">Proses ini menggunakan xLSTM dan mungkin memakan waktu beberapa saat.</div>
+                                    </div>
                                 </div>
                             </div>
 
                             <!-- Tombol Submit -->
-                            <button id="submit-btn" type="submit"
-                                    class="btn btn-primary btn-lg w-75 rounded-3 fw-semibold d-block mx-auto"
-                                    {% if not tickers or tickers|length == 0 %}disabled{% endif %}>
-                                Tampilkan Rekomendasi
-                            </button>
+                            <div class="d-grid mt-4">
+                                <button id="submit-btn" type="submit" class="btn btn-primary btn-lg rounded-pill shadow-sm" disabled>
+                                    <i class="bi bi-graph-up-arrow me-2"></i>Mulai Analisis Portofolio
+                                </button>
+                            </div>
                         </form>
                     </div>
                 </div>
 
-                <!-- TABEL HASIL PILIHAN -->
+                <!-- KOLOM KANAN: SIDEBAR PREVIEW -->
                 <div class="col-12 col-lg-5">
-                    <div class="card shadow-sm border-0 position-sticky" style="top: 88px;">
+                    <div class="card shadow-sm border-0 position-sticky rounded-4" style="top: 20px; z-index: 100;">
+                        <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+                            <h5 class="fw-bold mb-0 text-primary">Ringkasan Pilihan</h5>
+                        </div>
                         <div class="card-body">
-                            <div class="mb-4">
-                                <span class="small text-muted">Dana: </span>
-                                <strong id="amount-display">Rp 0</strong>
+                            <!-- Ringkasan Dana -->
+                            <div class="alert alert-light border d-flex justify-content-between align-items-center mb-3">
+                                <span class="text-muted small">Modal</span>
+                                <span class="fw-bold text-dark" id="sidebar-amount">Rp 0</span>
                             </div>
+
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h5 class="mb-0">Saham Terpilih</h5>
-                                <h5 class="mb-0"><span id="selected-count">0</span></h5>
+                                <span class="small text-muted">Saham Terpilih:</span>
+                                <span class="badge bg-primary rounded-pill" id="selected-count">0</span>
                             </div>
 
-                            <div id="selected-empty" class="form-text mb-2">Belum ada saham yang dipilih.</div>
-
-                            <div class="table-responsive no-x-scroll">
-                                <table class="table table-sm align-middle mb-0 table-fixed">
-                                    <colgroup>
-                                        <col style="width:auto">
-                                        <col style="width:auto">
-                                        <col style="width:auto">
-                                    </colgroup>
-                                    <thead class="table-light">
+                            <!-- Tabel Preview Saham -->
+                            <div class="table-responsive border rounded bg-white" style="max-height: 400px; overflow-y: auto;">
+                                <table class="table table-sm table-hover mb-0 align-middle">
+                                    <thead class="table-light sticky-top">
                                     <tr>
-                                        <th>Kode</th>
-                                        <th>Nama</th>
-                                        <th></th>
+                                        <th class="ps-3" style="width: 20%">Kode</th>
+                                        <th style="width: 60%">Nama</th>
+                                        <th class="text-end pe-3" style="width: 20%">Aksi</th>
                                     </tr>
                                     </thead>
-                                    <tbody id="selected-tbody"></tbody>
+                                    <tbody id="selected-tbody">
+                                    <tr>
+                                        <td colspan="3" class="text-center text-muted py-4 small">
+                                            Belum ada saham dipilih
+                                        </td>
+                                    </tr>
+                                    </tbody>
                                 </table>
                             </div>
-
                         </div>
                     </div>
                 </div>
+
             </div>
         </div>
     </section>
 
+    <!-- JAVASCRIPT LOGIC -->
     <script>
-        (function(){
-            //  Filter pencarian saham
+        document.addEventListener('DOMContentLoaded', function() {
+
+            // --- 1. INISIALISASI DATA ---
+            // Mengambil data dari variabel Jinja2 (Python) dan mengubahnya menjadi Object JS
+            const sectorsData = {{ sectors_data | tojson | default('{}') }};
+
+            // Elemen DOM
+            const listContainer = document.getElementById('ticker-list-container');
+            const sectorSelect = document.getElementById('sectorSelect');
             const searchInput = document.getElementById('ticker-search');
-            const container   = document.getElementById('ticker-list');
-            if (searchInput && container) {
-                const items = Array.from(container.querySelectorAll('.form-check'));
-                const debounce = (fn, wait=150) => { let t; return (...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),wait);} };
-                const onSearch = debounce(()=>{
-                    const q = (searchInput.value || '').trim().toLowerCase();
-                    items.forEach(div=>{
-                        const text = div.textContent.toLowerCase();
-                        div.style.display = (q.length<3 || text.includes(q)) ? '' : 'none';
+            const showingInfo = document.getElementById('showing-info');
+            const submitBtn = document.getElementById('submit-btn');
+
+            // State
+            let allTickerElements = []; // Menyimpan referensi ke elemen DOM untuk performa
+
+            // --- 2. FUNGSI RENDER UTAMA ---
+            function initTickerList() {
+                listContainer.innerHTML = ''; // Bersihkan loader
+                allTickerElements = [];
+
+                // Mengumpulkan semua saham dari semua sektor menjadi satu array flat
+                let allTickers = [];
+
+                for (const [sectorName, tickers] of Object.entries(sectorsData)) {
+                    tickers.forEach(ticker => {
+                        // Tambahkan properti sectorName ke object ticker untuk referensi
+                        allTickers.push({
+                            ...ticker,
+                            sectorName: sectorName
+                        });
                     });
+                }
+
+                // SORTING: Urutkan berdasarkan Kode Saham (A-Z)
+                allTickers.sort((a, b) => {
+                    const codeA = (a.code || '').toUpperCase();
+                    const codeB = (b.code || '').toUpperCase();
+                    if (codeA < codeB) return -1;
+                    if (codeA > codeB) return 1;
+                    return 0;
                 });
-                searchInput.addEventListener('input', onSearch);
+
+                // RENDER: Loop array yang sudah diurutkan
+                allTickers.forEach(ticker => {
+                    // Buat elemen Wrapper
+                    const div = document.createElement('div');
+                    div.className = 'form-check py-1 border-bottom ticker-item';
+
+                    // Simpan metadata untuk filtering cepat
+                    div.setAttribute('data-sector', ticker.sectorName);
+                    div.setAttribute('data-code', (ticker.code || '').toLowerCase());
+                    div.setAttribute('data-name', (ticker.name || '').toLowerCase());
+
+                    // Buat ID unik
+                    const uniqueId = `chk_${ticker.code}`;
+
+                    // HTML isi
+                    div.innerHTML = `
+                    <input class="form-check-input" type="checkbox" name="tickers[]" value="${ticker.code}" id="${uniqueId}">
+                    <label class="form-check-label w-100 cursor-pointer" for="${uniqueId}">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="fw-bold text-primary stock-code">${ticker.code}</span>
+                                <span class="text-muted ms-1 small d-none d-sm-inline stock-name text-truncate" style="max-width: 200px;">${ticker.name}</span>
+                            </div>
+                            <span class="badge bg-light text-secondary border fw-normal tiny-badge">${ticker.sectorName}</span>
+                        </div>
+                        <div class="small text-muted d-block d-sm-none text-truncate">${ticker.name}</div>
+                    </label>
+                `;
+
+                    listContainer.appendChild(div);
+                    allTickerElements.push(div);
+                });
+
+                if (allTickers.length === 0) {
+                    listContainer.innerHTML = `
+                    <div class="alert alert-warning text-center m-3">
+                        Data saham tidak ditemukan. <br>
+                        <small>Pastikan file CSV ada di folder <code>Data/Ticker/Sectors</code>.</small>
+                    </div>`;
+                } else {
+                    updateFilter(); // Jalankan filter awal
+                }
             }
 
-            //  Pilih Semua / Hapus Semua
-            const selectAllBtn = document.getElementById('select-all');
-            const clearAllBtn  = document.getElementById('clear-all');
-            if (selectAllBtn && clearAllBtn && container) {
-                selectAllBtn.addEventListener('click', ()=> {
-                    container.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true);
-                    updateSelectedList();
-                });
-                clearAllBtn.addEventListener('click', ()=> {
-                    container.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
-                    updateSelectedList();
-                });
-            }
+            // --- 3. LOGIKA FILTER (Sangat Cepat) ---
+            function updateFilter() {
+                const selectedSector = sectorSelect.value;
+                const query = searchInput.value.trim().toLowerCase();
+                let visibleCount = 0;
 
-            //  Render pilihan ke TABEL di sidebar (tanpa parsing dash)
-            function updateSelectedList() {
-                const tbody   = document.getElementById('selected-tbody');
-                const empty   = document.getElementById('selected-empty');
-                const countEl = document.getElementById('selected-count');
-                const container = document.getElementById('ticker-list');
-                if (!tbody || !container) return;
+                allTickerElements.forEach(el => {
+                    const itemSector = el.getAttribute('data-sector');
+                    const itemCode = el.getAttribute('data-code');
+                    const itemName = el.getAttribute('data-name');
 
-                const checked = Array.from(container.querySelectorAll('input[type="checkbox"]:checked'))
-                    .map(cb => {
-                        const label = cb.closest('.form-check')?.querySelector('label');
-                        const code  = label?.querySelector('.stock-code')?.textContent?.trim() || cb.value;
-                        const name  = label?.querySelector('.stock-name')?.textContent?.trim() || '';
-                        return { code, name };
-                    });
+                    // Cek Sektor
+                    const matchSector = (selectedSector === 'all') || (itemSector === selectedSector);
 
-                tbody.innerHTML = '';
-                checked.forEach(({ code, name }) => {
-                    const tr = document.createElement('tr');
+                    // Cek Search (Kode atau Nama)
+                    const matchSearch = !query || itemCode.includes(query) || itemName.includes(query);
 
-                    const tdCode = document.createElement('td');
-                    tdCode.textContent = code;
-
-                    const tdName = document.createElement('td');
-                    tdName.textContent = name || '-';
-                    tdName.title = name || ''; // tooltip nama penuh
-
-                    const tdAct = document.createElement('td');
-                    const btn = document.createElement('button');
-                    btn.type = 'button';
-                    btn.className = 'btn btn-sm btn-outline-danger';
-                    btn.textContent = '❌';
-                    btn.title = 'Hapus';
-                    btn.addEventListener('click', () => {
-                        const cb = container.querySelector(`input[type="checkbox"][value="${code}"]`);
-                        if (cb) { cb.checked = false; updateSelectedList(); }
-                    });
-                    tdAct.appendChild(btn);
-
-                    tr.appendChild(tdCode);
-                    tr.appendChild(tdName);
-                    tr.appendChild(tdAct);
-                    tbody.appendChild(tr);
-                });
-
-                const n = checked.length;
-                if (countEl) countEl.textContent = n;
-                if (empty) empty.style.display = n === 0 ? '' : 'none';
-            }
-
-            //  Alert saat submit
-            const form   = document.getElementById('optim-form');
-            const alert  = document.getElementById('training-alert');
-            const submit = document.getElementById('submit-btn');
-            if (form) {
-                form.addEventListener('submit', () => {
-                    alert.classList.remove('d-none');
-                    submit.disabled = true;
-                    submit.innerHTML =
-                        '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Melatih model…';
-                    submit.classList.add('disabled');
-                });
-            }
-
-            //  Event: checkbox berubah
-            if (container) {
-                container.addEventListener('change', (e) => {
-                    if (e.target && e.target.matches('input[type="checkbox"]')) {
-                        updateSelectedList();
+                    if (matchSector && matchSearch) {
+                        el.classList.remove('d-none');
+                        visibleCount++;
+                    } else {
+                        el.classList.add('d-none');
                     }
                 });
+
+                // Update teks info
+                const sectorText = selectedSector === 'all' ? 'semua sektor' : `sektor ${selectedSector}`;
+                showingInfo.textContent = `Menampilkan ${visibleCount} saham dari ${sectorText}`;
             }
 
-            // Render awal
-            updateSelectedList();
-        })();
+            // --- 4. EVENT LISTENERS ---
 
+            // Filter saat mengetik atau ganti dropdown
+            sectorSelect.addEventListener('change', updateFilter);
+            searchInput.addEventListener('input', updateFilter); // Realtime search
 
-    </script>
-    <script>
-        // Formatter Rupiah
-        function formatRupiah(num) {
-            const n = Number(num);
-            if (!isFinite(n)) return 'Rp 0';
-            return new Intl.NumberFormat('id-ID', {
-                style: 'currency',
-                currency: 'IDR',
-                maximumFractionDigits: 0
-            }).format(n);
-        }
+            // Tombol Pilih Yang Tampil
+            document.getElementById('select-visible').addEventListener('click', () => {
+                allTickerElements.forEach(el => {
+                    if (!el.classList.contains('d-none')) {
+                        const cb = el.querySelector('input[type="checkbox"]');
+                        if (cb) cb.checked = true;
+                    }
+                });
+                updateSidebar();
+            });
 
-        (function attachAmountPreview(){
-            const amountInput = document.getElementById('amount');
-            const amountOut   = document.getElementById('amount-display');
-            if (!amountInput || !amountOut) return;
+            // Tombol Reset Yang Tampil
+            document.getElementById('clear-visible').addEventListener('click', () => {
+                allTickerElements.forEach(el => {
+                    if (!el.classList.contains('d-none')) {
+                        const cb = el.querySelector('input[type="checkbox"]');
+                        if (cb) cb.checked = false;
+                    }
+                });
+                updateSidebar();
+            });
 
-            const render = () => {
-                const val = parseFloat(amountInput.value);
-                amountOut.textContent = formatRupiah(isNaN(val) ? 0 : val);
-            };
-
-            // Render awal (kalau ada nilai default)
-            render();
-
-            // Update saat user mengetik
-            amountInput.addEventListener('input', render);
-
-            // Opsional: cegah nilai negatif
-            amountInput.addEventListener('change', () => {
-                if (amountInput.value && Number(amountInput.value) < 0) {
-                    amountInput.value = 0;
-                    render();
+            // Deteksi perubahan checkbox manual (Delegation)
+            listContainer.addEventListener('change', (e) => {
+                if (e.target.type === 'checkbox') {
+                    updateSidebar();
                 }
             });
-        })();
+
+            // --- 5. SIDEBAR & VALIDASI ---
+            function updateSidebar() {
+                const tbody = document.getElementById('selected-tbody');
+                const countBadge = document.getElementById('selected-count');
+
+                // Ambil semua yang checked (termasuk yang hidden karena filter)
+                // Kita cari elemen checkbox langsung
+                const checkedBoxes = listContainer.querySelectorAll('input[type="checkbox"]:checked');
+                const count = checkedBoxes.length;
+
+                countBadge.textContent = count;
+                submitBtn.disabled = (count === 0);
+
+                tbody.innerHTML = '';
+
+                if (count === 0) {
+                    tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-4 small">Belum ada saham dipilih</td></tr>';
+                    return;
+                }
+
+                // Render list di sidebar
+                checkedBoxes.forEach(cb => {
+                    const wrapper = cb.closest('.ticker-item');
+                    // Ambil data asli dari atribut wrapper agar konsisten
+                    const code = wrapper.getAttribute('data-code').toUpperCase();
+                    // Nama sedikit tricky karena kita lowercase-kan di atribut, ambil text asli dari label
+                    const nameLabel = wrapper.querySelector('.stock-name').textContent;
+
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                    <td class="ps-3 fw-bold small">${code}</td>
+                    <td class="small text-muted text-truncate" style="max-width: 120px;" title="${nameLabel}">${nameLabel}</td>
+                    <td class="text-end pe-3">
+                        <button type="button" class="btn btn-link text-danger p-0 btn-remove-item" data-code="${code}">
+                            <i class="bi bi-x-circle-fill"></i>
+                        </button>
+                    </td>
+                `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            // Hapus item dari sidebar
+            document.getElementById('selected-tbody').addEventListener('click', (e) => {
+                const btn = e.target.closest('.btn-remove-item');
+                if (btn) {
+                    const codeToRemove = btn.getAttribute('data-code');
+                    // Uncheck di list utama
+                    // Kita harus cari input value secara spesifik karena case sensitivity
+                    // Value di checkbox adalah UPPERCASE biasanya dari backend, tapi mari kita pastikan
+                    const checkboxes = listContainer.querySelectorAll('input[type="checkbox"]');
+                    for (let cb of checkboxes) {
+                        if (cb.value.toUpperCase() === codeToRemove) {
+                            cb.checked = false;
+                            break;
+                        }
+                    }
+                    updateSidebar();
+                }
+            });
+
+            // --- 6. FORMAT RUPIAH & SUBMIT ---
+
+            const amountInput = document.getElementById('amount');
+            const amountPreview = document.getElementById('amount-text-preview');
+            const sidebarAmount = document.getElementById('sidebar-amount');
+
+            function formatRupiah(num) {
+                return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(num);
+            }
+
+            amountInput.addEventListener('input', () => {
+                const val = amountInput.value;
+                const formatted = val ? formatRupiah(val) : 'Rp 0';
+                amountPreview.textContent = formatted;
+                sidebarAmount.textContent = formatted;
+            });
+
+            // Animasi Submit
+            document.getElementById('optim-form').addEventListener('submit', () => {
+                const alert = document.getElementById('training-alert');
+                const btn = document.getElementById('submit-btn');
+
+                alert.classList.remove('d-none');
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Memproses...';
+
+                // Scroll ke alert agar terlihat user
+                alert.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            });
+
+            // --- JALANKAN SAAT LOAD ---
+            initTickerList();
+        });
     </script>
+
+    <style>
+        /* Styling Tambahan Khusus Halaman Ini */
+        .cursor-pointer { cursor: pointer; }
+
+        .ticker-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        /* Scrollbar halus untuk list */
+        #ticker-list-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        #ticker-list-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        #ticker-list-container::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 3px;
+        }
+        #ticker-list-container::-webkit-scrollbar-thumb:hover {
+            background: #aaa;
+        }
+
+        .tiny-badge {
+            font-size: 0.7rem;
+            opacity: 0.8;
+        }
+    </style>
 {% endblock %}
