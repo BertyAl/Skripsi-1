@@ -1,168 +1,490 @@
-{% extends 'base.html' %}
-{% block content %}
-    <div class="container py-4">
-        <h5 class="text-danger">Bukan ajakan untuk membeli saham, lakukan analisa kembali sebelum memutuskan!</h5>
-        <h4 class="mt-4">Hasil Optimasi Portofolio</h4>
-
-        {% if df_alloc and df_alloc|length > 0 %}
-            <div class="row g-3">
-                <div class="col-md-7">
-                    <table class="table table-sm">
-                        <thead class="table-light">
-                        <tr>
-                            <th>Ticker</th>
-                            <th class="text-end">Bobot</th>
-                            <th class="text-end">Nominal (Rp)</th>
-                            <th class="text-end">Expected Return</th>
-                            <th class="text-end">Risiko</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {% for row in df_alloc %}
-                            <tr>
-                                <td>{{ row.ticker }}</td>
-                                <td class="text-end">{{ "%.2f%%"|format(row.weight * 100) }}</td>
-                                <td class="text-end">{{ "{:,.0f}".format(row.nominal) }}</td>
-                                <td class="text-end">{{ "%.3f%%"|format(row.exp_return * 100) }}</td>
-                                <td class="text-end">{{ "%.3f%%"|format(row.asset_sigma * 100) }}</td>
-                            </tr>
-                        {% endfor %}
-                        </tbody>
-                    </table>
-
-                    <div class="mt-2 small text-muted">
-                        Expected Return Portofolio: <strong>{{ "%.3f%%"|format(summary.exp_return * 100) }}</strong> |
-                        Risiko: <strong>{{ "%.3f%%"|format(summary.risk * 100) }}</strong> |
-                        Sharpe: <strong>{{ "%.3f"|format(summary.sharpe) }}</strong>
-                    </div>
-
-                    {% if summary and (summary.exp_return is not none) and (summary.exp_return < 0) %}
-                        <div class="mt-1 small text-danger">
-                            ⚠️ Expected return portofolio negatif ({{ "%.3f%%"|format(summary.exp_return * 100) }}).
-                            Pertimbangkan mengganti komposisi saham.
+{#{% extends 'base.html' %}#}
+{#{% block content %}#}
+{#    <div class="container py-4">#}
+{#        <h5 class="text-danger">Bukan ajakan untuk membeli saham, lakukan analisa kembali sebelum memutuskan!</h5>#}
+{#        <h4 class="mt-4">Hasil Optimasi Portofolio</h4>#}
+{##}
+{#        {% if df_alloc and df_alloc|length > 0 %}#}
+{#            <div class="row g-3">#}
+{#                <div class="col-md-7">#}
+{#                    <table class="table table-sm">#}
+{#                        <thead class="table-light">#}
+{#                        <tr>#}
+{#                            <th>Ticker</th>#}
+{#                            <th class="text-end">Bobot</th>#}
+{#                            <th class="text-end">Nominal (Rp)</th>#}
+{#                            <th class="text-end">Expected Return</th>#}
+{#                            <th class="text-end">Risiko</th>#}
+{#                        </tr>#}
+{#                        </thead>#}
+{#                        <tbody>#}
+{#                        {% for row in df_alloc %}#}
+{#                            <tr>#}
+{#                                <td>{{ row.ticker }}</td>#}
+{#                                <td class="text-end">{{ "%.2f%%"|format(row.weight * 100) }}</td>#}
+{#                                <td class="text-end">{{ "{:,.0f}".format(row.nominal) }}</td>#}
+{#                                <td class="text-end">{{ "%.3f%%"|format(row.exp_return * 100) }}</td>#}
+{#                                <td class="text-end">{{ "%.3f%%"|format(row.asset_sigma * 100) }}</td>#}
+{#                            </tr>#}
+{#                        {% endfor %}#}
+{#                        </tbody>#}
+{#                    </table>#}
+{##}
+{#                    <div class="mt-2 small text-muted">#}
+{#                        Expected Return Portofolio: <strong>{{ "%.3f%%"|format(summary.exp_return * 100) }}</strong> |#}
+{#                        Risiko: <strong>{{ "%.3f%%"|format(summary.risk * 100) }}</strong> |#}
+{#                        Sharpe: <strong>{{ "%.3f"|format(summary.sharpe) }}</strong>#}
+{#                    </div>#}
+{##}
+{#                    {% if summary and (summary.exp_return is not none) and (summary.exp_return < 0) %}#}
+{#                        <div class="mt-1 small text-danger">#}
+{#                            ⚠️ Expected return portofolio negatif ({{ "%.3f%%"|format(summary.exp_return * 100) }}).#}
+{#                            Pertimbangkan mengganti komposisi saham.#}
                             {# opsional: tampilkan ticker yang exp_return-nya negatif #}
-                            {% set neg = df_alloc | selectattr('exp_return', 'lt', 0) | map(attribute='ticker') | list %}
-                            {% if neg|length > 0 %}
-                                Saham dengan expected return negatif: {{ neg|join(', ') }}.
-                            {% endif %}
-                        </div>
-                    {% endif %}
-                    <!-- Tombol Download CSV -->
-                    <div class="d-flex justify-content-end mt-2">
-                        <button type="button" class="btn btn-outline-success btn-sm" onclick="downloadAllocCSV()">
-                            Unduh CSV (Alokasi Portofolio)
-                        </button>
-                    </div>
-
-                </div>
-
-                <div class="col-md-5">
-                    <canvas id="allocPie" height="260"></canvas>
-                </div>
-            </div>
-        {% else %}
-            <div class="alert alert-warning">Belum ada alokasi (hasil optimasi kosong).</div>
-        {% endif %}
-
-        <div class="d-flex align-items-center justify-content-between mb-3">
-            <h2 class="h4 mb-0">Hasil Prediksi Saham xLSTM</h2>
-            {% if amount is not none %}
-                <span class="text-muted small">Dana: Rp {{ "{:,.0f}".format(amount or 0) }}</span>
-            {% endif %}
-        </div>
-
-        {% if results|length == 0 %}
-            <div class="alert alert-warning">Tidak ada hasil untuk ditampilkan.</div>
-        {% else %}
-            <div class="result-grid">
-                {% for res in results %}
-                    <div class="card result-card shadow-sm">
-                        <div class="card-body p-3">
-                            <h5 class="card-title h6 mb-2">{{ res.ticker }}</h5>
-
-                            <ul class="list-unstyled list-compact mb-2">
-                                <li>Harga terakhir: <strong>{{ "%.2f"|format(res.last_price) }}</strong></li>
-                                <li>Prediksi berikutnya: <strong>{{ "%.2f"|format(res.next_pred) }}</strong></li>
+{#                            {% set neg = df_alloc | selectattr('exp_return', 'lt', 0) | map(attribute='ticker') | list %}#}
+{#                            {% if neg|length > 0 %}#}
+{#                                Saham dengan expected return negatif: {{ neg|join(', ') }}.#}
+{#                            {% endif %}#}
+{#                        </div>#}
+{#                    {% endif %}#}
+{#                    <!-- Tombol Download CSV -->#}
+{#                    <div class="d-flex justify-content-end mt-2">#}
+{#                        <button type="button" class="btn btn-outline-success btn-sm" onclick="downloadAllocCSV()">#}
+{#                            Unduh CSV (Alokasi Portofolio)#}
+{#                        </button>#}
+{#                    </div>#}
+{##}
+{#                </div>#}
+{##}
+{#                <div class="col-md-5">#}
+{#                    <canvas id="allocPie" height="260"></canvas>#}
+{#                </div>#}
+{#            </div>#}
+{#        {% else %}#}
+{#            <div class="alert alert-warning">Belum ada alokasi (hasil optimasi kosong).</div>#}
+{#        {% endif %}#}
+{##}
+{#        <div class="d-flex align-items-center justify-content-between mb-3">#}
+{#            <h2 class="h4 mb-0">Hasil Prediksi Saham xLSTM</h2>#}
+{#            {% if amount is not none %}#}
+{#                <span class="text-muted small">Dana: Rp {{ "{:,.0f}".format(amount or 0) }}</span>#}
+{#            {% endif %}#}
+{#        </div>#}
+{##}
+{#        {% if results|length == 0 %}#}
+{#            <div class="alert alert-warning">Tidak ada hasil untuk ditampilkan.</div>#}
+{#        {% else %}#}
+{#            <div class="result-grid">#}
+{#                {% for res in results %}#}
+{#                    <div class="card result-card shadow-sm">#}
+{#                        <div class="card-body p-3">#}
+{#                            <h5 class="card-title h6 mb-2">{{ res.ticker }}</h5>#}
+{##}
+{#                            <ul class="list-unstyled list-compact mb-2">#}
+{#                                <li>Harga terakhir: <strong>{{ "%.2f"|format(res.last_price) }}</strong></li>#}
+{#                                <li>Prediksi berikutnya: <strong>{{ "%.2f"|format(res.next_pred) }}</strong></li>#}
 {#                                <li>MAE: <strong>{{ "%.4f"|format(res.mae) }}</strong></li>#}
 {#                                <li>RMSE: <strong>{{ "%.4f"|format(res.rmse) }}</strong></li>#}
 {#                                <li>MAPE: <strong>{{ "%.2f"|format(res.mape) }}%</strong></li>#}
-                            </ul>
+{#                            </ul>#}
+{##}
+{#                            <div class="table-responsive mb-2">#}
+{#                                <table class="table table-sm align-middle mb-0">#}
+{#                                    <thead>#}
+{#                                    <tr>#}
+{#                                        <th>Horizon</th>#}
+{#                                        <th>Tanggal</th>#}
+{#                                        <th class="text-end">Prediksi Harga</th>#}
+{#                                    </tr>#}
+{#                                    </thead>#}
+{#                                    <tbody>#}
+{#                                    <tr>#}
+{#                                        <td>1 Hari (T+1)</td>#}
+{#                                        <td>{{ res.pred_1d_date }}</td>#}
+{#                                        <td class="text-end"><strong>{{ "%.2f"|format(res.pred_1d) }}</strong></td>#}
+{#                                    </tr>#}
+{#                                    <tr>#}
+{#                                        <td>#}
+{#                                            3 Bulan (≈ 60 hari bursa)#}
+{#                                            <button class="btn btn-link btn-sm p-0 ms-2" type="button"#}
+{#                                                    data-bs-toggle="collapse"#}
+{#                                                    data-bs-target="#tbl3m_{{ loop.index0 }}"#}
+{#                                                    aria-expanded="false"#}
+{#                                                    aria-controls="tbl3m_{{ loop.index0 }}">#}
+{#                                                Lihat rincian#}
+{#                                            </button>#}
+{#                                        </td>#}
+{#                                        <td>{{ res.pred_3mo_date }}</td>#}
+{#                                        <td class="text-end"><strong>{{ "%.2f"|format(res.pred_3mo) }}</strong></td>#}
+{#                                    </tr>#}
+{#                                    </tbody>#}
+{#                                </table>#}
+{#                                <div class="form-text mt-1">#}
+{#                                    Data terakhir: <strong>{{ res.last_date }}</strong> → hari bursa berikutnya: <strong>{{ res.next_bd }}</strong>#}
+{#                                </div>#}
+{#                            </div>#}
+{##}
+{#                            {% set has_future = (res.future_dates is defined) and (res.future_values is defined)#}
+{#                                and (res.future_dates|length > 0) and (res.future_values|length > 0) %}#}
+{#                            {% if has_future %}#}
+{#                                <div class="collapse" id="tbl3m_{{ loop.index0 }}">#}
+{#                                    <div class="card card-body border-0 p-0 mt-2">#}
+{#                                        <div class="table-responsive" style="max-height:260px; overflow-y:auto;">#}
+{#                                            <table class="table table-sm table-hover mb-0">#}
+{#                                                <thead class="table-light" style="position:sticky; top:0; z-index:1;">#}
+{#                                                <tr>#}
+{#                                                    <th style="width:40%;">Tanggal</th>#}
+{#                                                    <th class="text-end">Prediksi Harga</th>#}
+{#                                                </tr>#}
+{#                                                </thead>#}
+{#                                                <tbody>#}
+{#                                                {% for i in range(res.future_dates|length) %}#}
+{#                                                    <tr>#}
+{#                                                        <td>{{ res.future_dates[i] }}</td>#}
+{#                                                        <td class="text-end">{{ "%.2f"|format(res.future_values[i]) }}</td>#}
+{#                                                    </tr>#}
+{#                                                {% endfor %}#}
+{#                                                </tbody>#}
+{#                                            </table>#}
+{#                                        </div>#}
+{##}
+{#                                        <div class="d-flex justify-content-end mt-2">#}
+{#                                            <button type="button" class="btn btn-outline-secondary btn-sm"#}
+{#                                                    onclick='download3MCSV("{{ res.ticker }}", {{ res.future_dates|tojson }}, {{ res.future_values|tojson }})'>#}
+{#                                                Unduh CSV 3 Bulan#}
+{#                                            </button>#}
+{#                                        </div>#}
+{##}
+{#                                    </div>#}
+{#                                </div>#}
+{#                            {% else %}#}
+{#                                <div class="alert alert-warning mt-2 mb-0 small">#}
+{#                                    Data prediksi 3 bulan tidak tersedia untuk {{ res.ticker }}.#}
+{#                                </div>#}
+{#                            {% endif %}#}
+{##}
+{#                        </div>#}
+{#                    </div>#}
+{#                {% endfor %}#}
+{#            </div>#}
+{#        {% endif %}#}
+{#    </div>#}
+{##}
+{#    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>#}
+{#    <script>#}
+{#        (function(){#}
+{##}
+{#            // Pie chart alokasi dari df_alloc#}
+{#            {% if df_alloc and df_alloc|length > 0 %}#}
+{#                const labels = {{ df_alloc | map(attribute='ticker') | list | tojson }};#}
+{#                const weights = {{ df_alloc | map(attribute='weight') | list | tojson }};#}
+{#                const ctxPie = document.getElementById('allocPie');#}
+{#                if (ctxPie) {#}
+{#                    new Chart(ctxPie.getContext('2d'), {#}
+{#                        type: 'pie',#}
+{#                        data: { labels, datasets: [{ data: weights }] },#}
+{#                        options: {#}
+{#                            plugins: {#}
+{#                                tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ${(ctx.raw*100).toFixed(2)}%` } },#}
+{#                                legend: { position:'bottom' }#}
+{#                            }#}
+{#                        }#}
+{#                    });#}
+{#                }#}
+{#            {% endif %}#}
+{#        })();#}
+{#    </script>#}
+{#    <script>#}
+{#        function downloadAllocCSV() {#}
+{#            try {#}
+{#                // Ambil tabel pertama (alokasi portofolio)#}
+{#                const table = document.querySelector("table.table.table-sm");#}
+{#                if (!table) {#}
+{#                    alert("Tabel alokasi tidak ditemukan!");#}
+{#                    return;#}
+{#                }#}
+{##}
+{#                const rows = [];#}
+{#                const q = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`; // fungsi quoting CSV#}
+{##}
+{#                // Ambil header#}
+{#                const headers = Array.from(table.querySelectorAll("thead th")).map(th => th.innerText.trim());#}
+{#                rows.push(headers.map(q));#}
+{##}
+{#                // Ambil isi baris#}
+{#                const bodyRows = table.querySelectorAll("tbody tr");#}
+{#                bodyRows.forEach(tr => {#}
+{#                    const cols = Array.from(tr.querySelectorAll("td")).map(td => td.innerText.trim());#}
+{#                    rows.push(cols.map(q));#}
+{#                });#}
+{##}
+{#                // Gabung baris#}
+{#                const csvBody = rows.map(r => r.join(",")).join("\r\n");#}
+{#                const csv = "\uFEFF" + csvBody; // Tambah BOM agar Excel aman#}
+{##}
+{#                // Buat blob dan trigger download#}
+{#                const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });#}
+{#                const filename = `alokasi_portofolio_${new Date().toISOString().slice(0,10)}.csv`;#}
+{##}
+{#                if (window.navigator && window.navigator.msSaveOrOpenBlob) {#}
+{#                    window.navigator.msSaveOrOpenBlob(blob, filename);#}
+{#                    return;#}
+{#                }#}
+{##}
+{#                const url = URL.createObjectURL(blob);#}
+{#                const a = document.createElement("a");#}
+{#                a.href = url;#}
+{#                a.download = filename;#}
+{#                a.rel = "noopener";#}
+{#                document.body.appendChild(a);#}
+{#                a.click();#}
+{#                a.remove();#}
+{#                URL.revokeObjectURL(url);#}
+{##}
+{#            } catch (err) {#}
+{#                console.error("Gagal ekspor CSV:", err);#}
+{#                alert("Terjadi kesalahan saat mengekspor CSV.");#}
+{#            }#}
+{#        }#}
+{#    </script>#}
+{#    <script>#}
+{#        function download3MCSV(ticker, dates, values) {#}
+{#            try {#}
+{#                if (!dates || !values || dates.length === 0 || values.length === 0) {#}
+{#                    alert("Data prediksi 3 bulan tidak tersedia.");#}
+{#                    return;#}
+{#                }#}
+{##}
+{#                const rows = [];#}
+{#                const q = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`; // quoting CSV#}
+{##}
+{#                // Header CSV#}
+{#                rows.push([q("Ticker"), q("Tanggal"), q("Prediksi Harga")]);#}
+{##}
+{#                // Isi baris#}
+{#                const n = Math.min(dates.length, values.length);#}
+{#                for (let i = 0; i < n; i++) {#}
+{#                    const tanggal = dates[i];#}
+{#                    const harga = values[i];#}
+{##}
+{#                    // Pastikan harga dalam format 2 desimal#}
+{#                    const hargaStr = (typeof harga === "number")#}
+{#                        ? harga.toFixed(2)#}
+{#                        : String(harga);#}
+{##}
+{#                    rows.push([#}
+{#                        q(ticker),#}
+{#                        q(tanggal),#}
+{#                        q(hargaStr)#}
+{#                    ]);#}
+{#                }#}
+{##}
+{#                // Gabungkan jadi string CSV#}
+{#                const csvBody = rows.map(r => r.join(",")).join("\r\n");#}
+{#                const csv = "\uFEFF" + csvBody; // BOM untuk Excel#}
+{##}
+{#                const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });#}
+{#                const today = new Date().toISOString().slice(0, 10);#}
+{#                const filename = `prediksi_3bulan_${ticker}_${today}.csv`;#}
+{##}
+{#                // Support IE/Edge lama#}
+{#                if (window.navigator && window.navigator.msSaveOrOpenBlob) {#}
+{#                    window.navigator.msSaveOrOpenBlob(blob, filename);#}
+{#                    return;#}
+{#                }#}
+{##}
+{#                // Trigger download#}
+{#                const url = URL.createObjectURL(blob);#}
+{#                const a = document.createElement("a");#}
+{#                a.href = url;#}
+{#                a.download = filename;#}
+{#                a.rel = "noopener";#}
+{#                document.body.appendChild(a);#}
+{#                a.click();#}
+{#                a.remove();#}
+{#                URL.revokeObjectURL(url);#}
+{#            } catch (err) {#}
+{#                console.error("Gagal ekspor CSV 3 bulan:", err);#}
+{#                alert("Terjadi kesalahan saat mengekspor CSV 3 bulan.");#}
+{#            }#}
+{#        }#}
+{#    </script>#}
+{##}
+{##}
+{#{% endblock %}#}
+{% extends 'base.html' %}
+{% block content %}
+    <div class="container py-4">
 
-                            <div class="table-responsive mb-2">
-                                <table class="table table-sm align-middle mb-0">
-                                    <thead>
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h5 class="text-danger mb-1"><i class="bi bi-exclamation-circle"></i> Disclaimer: Lakukan analisa sendiri (DYOR).</h5>
+                <h4 class="mb-0 fw-bold">Hasil Optimasi Portofolio</h4>
+            </div>
+            <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-left"></i> Dashboard
+            </a>
+        </div>
+
+        <!-- FORM HIDDEN UNTUK RE-OPTIMASI -->
+        <form id="recalc-form" action="{{ url_for('main.about') }}" method="POST" style="display: none;">
+            <input type="hidden" name="amount" value="{{ amount }}">
+            <input type="hidden" name="predictions_json" id="predictions_json_input">
+        </form>
+
+        {% if df_alloc and df_alloc|length > 0 %}
+            <div class="row g-4">
+                <!-- Tabel Alokasi -->
+                <div class="col-lg-8">
+                    <div class="card shadow-sm border-0 rounded-3">
+                        <div class="card-header bg-white py-3 border-bottom">
+                            <h6 class="mb-0 fw-bold text-primary">Rincian Alokasi Aset</h6>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light small text-uppercase text-muted">
+                                <tr>
+                                    <th>Ticker</th>
+                                    <th class="text-end">Bobot</th>
+                                    <th class="text-end">Nominal (Rp)</th>
+                                    <th class="text-end">Exp. Return</th>
+                                    <th class="text-end" title="Risiko per aset (std dev)">Risiko Aset</th>
+                                    <th class="text-center">Aksi</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {% for row in df_alloc %}
                                     <tr>
-                                        <th>Horizon</th>
-                                        <th>Tanggal</th>
-                                        <th class="text-end">Prediksi Harga</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody>
-                                    <tr>
-                                        <td>1 Hari (T+1)</td>
-                                        <td>{{ res.pred_1d_date }}</td>
-                                        <td class="text-end"><strong>{{ "%.2f"|format(res.pred_1d) }}</strong></td>
-                                    </tr>
-                                    <tr>
-                                        <td>
-                                            3 Bulan (≈ 60 hari bursa)
-                                            <button class="btn btn-link btn-sm p-0 ms-2" type="button"
-                                                    data-bs-toggle="collapse"
-                                                    data-bs-target="#tbl3m_{{ loop.index0 }}"
-                                                    aria-expanded="false"
-                                                    aria-controls="tbl3m_{{ loop.index0 }}">
-                                                Lihat rincian
-                                            </button>
+                                        <td class="fw-bold">{{ row.ticker }}</td>
+                                        <td class="text-end">{{ "%.2f%%"|format(row.weight * 100) }}</td>
+                                        <td class="text-end font-monospace">{{ "{:,.0f}".format(row.nominal) }}</td>
+
+                                        <!-- Expected Return -->
+                                        <td class="text-end">
+                                            <span class="{{ 'text-success' if row.exp_return > 0 else 'text-danger' }}">
+                                                {{ "%.2f%%"|format(row.exp_return * 100) }}
+                                            </span>
                                         </td>
-                                        <td>{{ res.pred_3mo_date }}</td>
-                                        <td class="text-end"><strong>{{ "%.2f"|format(res.pred_3mo) }}</strong></td>
+
+                                        <!-- Risiko Aset (row.asset_sigma dari kode baru) -->
+                                        <td class="text-end text-muted">
+                                            {{ "%.2f%%"|format(row.asset_sigma * 100) }}
+                                        </td>
+
+                                        <td class="text-center">
+                                            <button type="button" onclick="removeTicker('{{ row.ticker }}')"
+                                                    data-bs-toggle="tooltip" title="Hapus {{ row.ticker }}">
+
+                                            </button>
+{#                                            <button type="button" class="btn btn-sm btn-link text-danger p-0"#}
+{#                                                    onclick="removeTicker('{{ row.ticker }}')"#}
+{#                                                    data-bs-toggle="tooltip" title="Hapus {{ row.ticker }}">#}
+{#                                                <i class="bi bi-trash"></i>#}
+{#                                            </button>#}
+                                        </td>
                                     </tr>
-                                    </tbody>
-                                </table>
-                                <div class="form-text mt-1">
-                                    Data terakhir: <strong>{{ res.last_date }}</strong> → hari bursa berikutnya: <strong>{{ res.next_bd }}</strong>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Footer Ringkasan Portofolio -->
+                        <div class="card-footer bg-light py-3">
+                            <div class="row text-center text-md-start">
+                                <div class="col-md-4 mb-2 mb-md-0">
+                                    <small class="text-muted d-block">Exp. Return Portofolio</small>
+                                    <strong class="{{ 'text-danger' if summary.exp_return < 0 else 'text-success' }} fs-5">
+                                        {{ "%.3f%%"|format(summary.exp_return * 100) }}
+                                    </strong>
+                                </div>
+                                <div class="col-md-4 mb-2 mb-md-0">
+                                    <small class="text-muted d-block">Risiko Portofolio</small>
+                                    <strong class="text-dark fs-5">{{ "%.3f%%"|format(summary.risk * 100) }}</strong>
+                                </div>
+                                <div class="col-md-4">
+                                    <small class="text-muted d-block">Sharpe Ratio</small>
+                                    <strong class="text-primary fs-5">{{ "%.3f"|format(summary.sharpe) }}</strong>
                                 </div>
                             </div>
+                        </div>
+                    </div>
 
-                            {% set has_future = (res.future_dates is defined) and (res.future_values is defined)
-                                and (res.future_dates|length > 0) and (res.future_values|length > 0) %}
-                            {% if has_future %}
-                                <div class="collapse" id="tbl3m_{{ loop.index0 }}">
-                                    <div class="card card-body border-0 p-0 mt-2">
-                                        <div class="table-responsive" style="max-height:260px; overflow-y:auto;">
-                                            <table class="table table-sm table-hover mb-0">
-                                                <thead class="table-light" style="position:sticky; top:0; z-index:1;">
+                    {% if summary.status != 'optimal' and summary.status != 'trivial' %}
+                        <div class="alert alert-warning mt-3">
+                            Status Optimasi: <strong>{{ summary.status }}</strong>. Hasil mungkin bukan yang terbaik.
+                        </div>
+                    {% endif %}
+
+                    <div class="text-end mt-2">
+                        <button class="btn btn-outline-success btn-sm" onclick="downloadAllocCSV()">
+                            <i class="bi bi-download me-1"></i> Unduh CSV
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Chart -->
+                <div class="col-lg-4">
+                    <div class="card shadow-sm border-0 h-100">
+                        <div class="card-body d-flex flex-column justify-content-center align-items-center">
+                            <h6 class="text-muted mb-3 w-100 text-center">Komposisi Portofolio</h6>
+                            <div style="position: relative; width: 100%; max-width: 300px;">
+                                <canvas id="allocPie"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <div class="alert alert-warning border-0 shadow-sm">
+                <h5 class="alert-heading"><i class="bi bi-exclamation-triangle"></i> Tidak ada solusi optimal</h5>
+                <p>Mungkin karena data return terlalu sedikit, volatilitas nol, atau kendala optimasi tidak terpenuhi.</p>
+                <hr>
+                <a href="{{ url_for('main.dashboard') }}" class="btn btn-sm btn-warning">Pilih Ulang Saham</a>
+            </div>
+        {% endif %}
+
+        <hr class="my-5">
+
+        <!-- Bagian Hasil Prediksi -->
+        <h5 class="fw-bold mb-3">Detail Prediksi (xLSTM)</h5>
+        {% if results %}
+            <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
+                {% for res in results %}
+                    <div class="col">
+                        <div class="card h-100 border-0 shadow-sm hover-card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h6 class="fw-bold text-primary mb-0">{{ res.ticker }}</h6>
+                                    <span class="badge bg-light text-dark border">Rp {{ "{:,.0f}".format(res.last_price) }}</span>
+                                </div>
+
+                                <div class="small text-muted mb-3">
+                                    <div>Prediksi T+1: <strong>{{ "{:,.2f}".format(res.pred_1d) }}</strong></div>
+                                    <div>Prediksi 3 Bulan: <strong>{{ "{:,.2f}".format(res.pred_3mo) }}</strong></div>
+                                </div>
+
+                                <button class="btn btn-sm btn-outline-secondary w-100" type="button"
+                                        data-bs-toggle="collapse" data-bs-target="#hist-{{ loop.index }}">
+                                    Lihat Data <i class="bi bi-chevron-down"></i>
+                                </button>
+
+                                <div class="collapse mt-2" id="hist-{{ loop.index }}">
+                                    <div class="table-responsive" style="max-height: 150px; overflow-y: auto;">
+                                        <table class="table table-xs mb-0">
+                                            <thead><tr><th>Tgl</th><th class="text-end">Harga</th></tr></thead>
+                                            <tbody>
+                                            {% for i in range(res.future_dates|length) %}
                                                 <tr>
-                                                    <th style="width:40%;">Tanggal</th>
-                                                    <th class="text-end">Prediksi Harga</th>
+                                                    <td class="text-muted" style="font-size: 0.75rem">{{ res.future_dates[i] }}</td>
+                                                    <td class="text-end fw-bold" style="font-size: 0.75rem">{{ "%.0f"|format(res.future_values[i]) }}</td>
                                                 </tr>
-                                                </thead>
-                                                <tbody>
-                                                {% for i in range(res.future_dates|length) %}
-                                                    <tr>
-                                                        <td>{{ res.future_dates[i] }}</td>
-                                                        <td class="text-end">{{ "%.2f"|format(res.future_values[i]) }}</td>
-                                                    </tr>
-                                                {% endfor %}
-                                                </tbody>
-                                            </table>
-                                        </div>
-
-                                        <div class="d-flex justify-content-end mt-2">
-                                            <button type="button" class="btn btn-outline-secondary btn-sm"
-                                                    onclick='download3MCSV("{{ res.ticker }}", {{ res.future_dates|tojson }}, {{ res.future_values|tojson }})'>
-                                                Unduh CSV 3 Bulan
-                                            </button>
-                                        </div>
-
+                                            {% endfor %}
+                                            </tbody>
+                                        </table>
                                     </div>
                                 </div>
-                            {% else %}
-                                <div class="alert alert-warning mt-2 mb-0 small">
-                                    Data prediksi 3 bulan tidak tersedia untuk {{ res.ticker }}.
-                                </div>
-                            {% endif %}
-
+                            </div>
                         </div>
                     </div>
                 {% endfor %}
@@ -170,145 +492,97 @@
         {% endif %}
     </div>
 
+    <!-- Script Javascript -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        (function(){
+        // 1. DATA PREDIKSI UNTUK RE-OPTIMASI
+        const currentResults = {{ results | tojson | default('[]') }};
 
-            // Pie chart alokasi dari df_alloc
+        // Fungsi Hapus Ticker
+        function removeTicker(ticker) {
+            if(!confirm(`Hapus ${ticker} dan hitung ulang portofolio?`)) return;
+
+            const newResults = currentResults.filter(r => r.ticker !== ticker);
+            if(newResults.length === 0) {
+                alert("Tidak bisa menghapus semua saham.");
+                return;
+            }
+
+            // Kirim data sisa ke backend
+            document.getElementById('predictions_json_input').value = JSON.stringify(newResults);
+
+            // Tampilkan loading manual (opsional)
+            const btn = document.activeElement;
+            if(btn) btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+            document.getElementById('recalc-form').submit();
+        }
+
+        // 2. CHART
+        (function(){
             {% if df_alloc and df_alloc|length > 0 %}
                 const labels = {{ df_alloc | map(attribute='ticker') | list | tojson }};
                 const weights = {{ df_alloc | map(attribute='weight') | list | tojson }};
-                const ctxPie = document.getElementById('allocPie');
-                if (ctxPie) {
-                    new Chart(ctxPie.getContext('2d'), {
-                        type: 'pie',
-                        data: { labels, datasets: [{ data: weights }] },
+
+                const ctx = document.getElementById('allocPie');
+                if(ctx) {
+                    new Chart(ctx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                data: weights,
+                                backgroundColor: [
+                                    '#0d6efd', '#6610f2', '#6f42c1', '#d63384', '#dc3545',
+                                    '#fd7e14', '#ffc107', '#198754', '#20c997', '#0dcaf0'
+                                ],
+                                borderWidth: 0
+                            }]
+                        },
                         options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
                             plugins: {
-                                tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ${(ctx.raw*100).toFixed(2)}%` } },
-                                legend: { position:'bottom' }
+                                legend: { position: 'bottom', labels: { boxWidth: 10, font: {size: 10} } },
+                                tooltip: { callbacks: { label: (c) => ` ${c.label}: ${(c.raw*100).toFixed(2)}%` } }
                             }
                         }
                     });
                 }
             {% endif %}
         })();
-    </script>
-    <script>
+
+        // 3. DOWNLOAD CSV
         function downloadAllocCSV() {
-            try {
-                // Ambil tabel pertama (alokasi portofolio)
-                const table = document.querySelector("table.table.table-sm");
-                if (!table) {
-                    alert("Tabel alokasi tidak ditemukan!");
-                    return;
-                }
+            const table = document.querySelector("table");
+            if(!table) return;
 
-                const rows = [];
-                const q = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`; // fungsi quoting CSV
+            let rows = [];
+            // Header
+            let headers = Array.from(table.querySelectorAll("thead th")).map(th => th.innerText).slice(0, -1);
+            rows.push(headers.join(","));
 
-                // Ambil header
-                const headers = Array.from(table.querySelectorAll("thead th")).map(th => th.innerText.trim());
-                rows.push(headers.map(q));
+            // Body
+            table.querySelectorAll("tbody tr").forEach(tr => {
+                let cols = Array.from(tr.querySelectorAll("td")).map(td => td.innerText).slice(0, -1);
+                // Bersihkan format (Rp, %, koma ribuan) agar jadi angka murni di Excel
+                cols = cols.map(c => `"${c.replace(/\./g,'').replace(/,/g,'.')}"`);
+                rows.push(cols.join(","));
+            });
 
-                // Ambil isi baris
-                const bodyRows = table.querySelectorAll("tbody tr");
-                bodyRows.forEach(tr => {
-                    const cols = Array.from(tr.querySelectorAll("td")).map(td => td.innerText.trim());
-                    rows.push(cols.map(q));
-                });
-
-                // Gabung baris
-                const csvBody = rows.map(r => r.join(",")).join("\r\n");
-                const csv = "\uFEFF" + csvBody; // Tambah BOM agar Excel aman
-
-                // Buat blob dan trigger download
-                const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-                const filename = `alokasi_portofolio_${new Date().toISOString().slice(0,10)}.csv`;
-
-                if (window.navigator && window.navigator.msSaveOrOpenBlob) {
-                    window.navigator.msSaveOrOpenBlob(blob, filename);
-                    return;
-                }
-
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = filename;
-                a.rel = "noopener";
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-                URL.revokeObjectURL(url);
-
-            } catch (err) {
-                console.error("Gagal ekspor CSV:", err);
-                alert("Terjadi kesalahan saat mengekspor CSV.");
-            }
-        }
-    </script>
-    <script>
-        function download3MCSV(ticker, dates, values) {
-            try {
-                if (!dates || !values || dates.length === 0 || values.length === 0) {
-                    alert("Data prediksi 3 bulan tidak tersedia.");
-                    return;
-                }
-
-                const rows = [];
-                const q = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`; // quoting CSV
-
-                // Header CSV
-                rows.push([q("Ticker"), q("Tanggal"), q("Prediksi Harga")]);
-
-                // Isi baris
-                const n = Math.min(dates.length, values.length);
-                for (let i = 0; i < n; i++) {
-                    const tanggal = dates[i];
-                    const harga = values[i];
-
-                    // Pastikan harga dalam format 2 desimal
-                    const hargaStr = (typeof harga === "number")
-                        ? harga.toFixed(2)
-                        : String(harga);
-
-                    rows.push([
-                        q(ticker),
-                        q(tanggal),
-                        q(hargaStr)
-                    ]);
-                }
-
-                // Gabungkan jadi string CSV
-                const csvBody = rows.map(r => r.join(",")).join("\r\n");
-                const csv = "\uFEFF" + csvBody; // BOM untuk Excel
-
-                const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-                const today = new Date().toISOString().slice(0, 10);
-                const filename = `prediksi_3bulan_${ticker}_${today}.csv`;
-
-                // Support IE/Edge lama
-                if (window.navigator && window.navigator.msSaveOrOpenBlob) {
-                    window.navigator.msSaveOrOpenBlob(blob, filename);
-                    return;
-                }
-
-                // Trigger download
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = filename;
-                a.rel = "noopener";
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-                URL.revokeObjectURL(url);
-            } catch (err) {
-                console.error("Gagal ekspor CSV 3 bulan:", err);
-                alert("Terjadi kesalahan saat mengekspor CSV 3 bulan.");
-            }
+            const blob = new Blob([rows.join("\n")], { type: "text/csv" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "optimasi_portofolio.csv";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
         }
     </script>
 
-
+    <style>
+        .hover-card:hover { transform: translateY(-2px); transition: 0.3s; box-shadow: 0 .5rem 1rem rgba(0,0,0,.1)!important; }
+        .table-xs th, .table-xs td { padding: 0.25rem 0.5rem; }
+    </style>
 {% endblock %}
